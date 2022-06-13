@@ -24,5 +24,7 @@ public class ColourSettings {
     }
     
     public static final Color BACKGROUND_COLOUR = new Color(0,0,0);
+    public static final Color ACTIVE_COLOUR = new Color(255,0,0);
+    public static final Color INACTIVE_COLOUR = new Color(0,0,0);
     public static final int CSCALE_GRAY = 0;
 }

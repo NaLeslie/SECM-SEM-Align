@@ -1,6 +1,6 @@
 /*
  * Created: 2022-01-14
- * Updated: 2022-03-29
+ * Updated: 2022-06-10
  * Nathaniel Leslie
  */
 package sem_secm_align;
@@ -66,11 +66,11 @@ public class Visualizer extends JPanel{
         secm_scale_factor = settings.UNITS_DISTANCE[settings.DEFAULT_DISTANCE_UNIT_SELECTION].getFactor();
         //sem variables
         sem_image = new SEMImage();
-        sem_scale = settings.DEFAULT_SEM_SCALE;
-        sem_xoffs = settings.DEFAULT_SEM_XOFFSET;
-        sem_yoffs = settings.DEFAULT_SEM_YOFFSET;
-        sem_rotation = settings.DEFAULT_SEM_ROTATION;
-        sem_transparency = 0.5f;
+        sem_scale                   =        settings.DEFAULT_SEM_SCALE;
+        sem_xoffs                   =        settings.DEFAULT_SEM_XOFFSET;
+        sem_yoffs                   =        settings.DEFAULT_SEM_YOFFSET;
+        sem_rotation                =        settings.DEFAULT_SEM_ROTATION;
+        sem_transparency            = (float)settings.DEFAULT_SEM_Transparency;
         //sem movement variables
         extra_x_offset = 0.0;
         extra_y_offset = 0.0;
@@ -79,6 +79,23 @@ public class Visualizer extends JPanel{
         initial_mouse_y = 0;
         initial_mouse_phi = 0;
         working_scale = 1;
+        //reactivity
+        reac_sem_transparency       = (float)settings.DEFAULT_REAC_SEM_TRANSPARENCY;
+        reac_selection_transparency = (float)settings.DEFAULT_REAC_SELECTION_TRANSPARENCY;
+        reac_xresolution            =        settings.DEFAULT_REAC_XRESOLUTION;
+        reac_yresolution            =        settings.DEFAULT_REAC_YRESOLUTION;
+        reac_tool = PECNCIL;
+        reac_grid                   =        settings.DEFAULT_REAC_SHOW_GRID;
+        reac_cellheight = working_scale*reac_xresolution;
+        reac_cellwidth = working_scale*reac_yresolution;
+        crop_x1 = 0;
+        crop_x2 = 1;
+        crop_y1 = 0;
+        crop_y2 = 1;
+        tentative_crop_x1 = 0;
+        tentative_crop_x2 = 1;
+        tentative_crop_y1 = 0;
+        tentative_crop_y2 = 1;
     }
     
     /**
@@ -98,6 +115,11 @@ public class Visualizer extends JPanel{
                 }
                 break;
             case 2://draw reactivity
+                if(secm_image.isDisplayable()){
+                    base_image = drawReactivity();
+                }else{
+                    base_image = defaultImage();
+                }
                 break;
             case 3://draw sampling
                 break;
@@ -151,9 +173,9 @@ public class Visualizer extends JPanel{
         
         //render the image
         for(int x = 0; x <= image_width; x++){
-            double xcoord = (double)x / (double)image_width * secm_width;
+            double xcoord = (double)x / (double)image_width * secm_width + secm_image.getXMin();
             for(int y = 0; y <= image_height; y++){
-                double ycoord = (double)y / (double)image_height * secm_height;
+                double ycoord = (double)y / (double)image_height * secm_height + secm_image.getYMin();
                 double current = secm_image.getScaledCurrent(xcoord, ycoord, SECMImage.INTERPOLATION_NN);
                 secm_graphics.setColor(ColourSettings.colorScale(current, ColourSettings.CSCALE_GRAY));
                 secm_graphics.fillRect(x + x0, y + y0, 1, 1);
@@ -218,13 +240,79 @@ public class Visualizer extends JPanel{
         return sem;
     }
     
-    private Image drawReactivity(){
-        Image reac = defaultImage();
+    private BufferedImage drawReactivity(){
+        /////////////////////////////
+        //draw the cropped SECM image
+        int width = this.getWidth();
+        int height = this.getHeight();
+        BufferedImage reac = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D reac_graphics = reac.createGraphics();
+        reac_graphics.setColor(ColourSettings.BACKGROUND_COLOUR);
+        reac_graphics.fillRect(0, 0, width, height);
         
+        //Evaluate the scaling and offsets for the cropped image
+        double crop_width = crop_x2 - crop_x1;
+        double crop_height = crop_y2 - crop_y1;
+        
+        int image_width, image_height;
+        working_scale = (double)width/crop_width/secm_scale_factor; //pixels per metre
+        
+        if(crop_width/width < crop_height/height){
+            image_width = (int)(crop_width/crop_height*(double)height);
+            image_height = height;
+            working_scale = (double)height/crop_height/secm_scale_factor;
+        }
+        else{
+            image_width = width;
+            image_height = (int)(crop_height/crop_width*(double)width);
+        }
+        
+        int x0 = (width - image_width)/2;
+        int y0 = (height - image_height)/2;
+        
+        //render the SECM image
+        for(int x = 0; x <= image_width; x++){
+            double xcoord = (double)x / (double)image_width * crop_width + crop_x1;
+            for(int y = 0; y <= image_height; y++){
+                double ycoord = (double)y / (double)image_height * crop_height + crop_y1;
+                double current = secm_image.getScaledCurrent(xcoord, ycoord, SECMImage.INTERPOLATION_NN);
+                reac_graphics.setColor(ColourSettings.colorScale(current, ColourSettings.CSCALE_GRAY));
+                reac_graphics.fillRect(x + x0, y + y0, 1, 1);
+            }
+        }
+        
+        //////////////////////////////
+        //Render the cropped SEM image
+        reac_graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP,reac_sem_transparency));
+        double sem_cx = (double)image_width*0.5;
+        double sem_cy = (double)image_height*0.5;
+        
+        //Transform the SEM image
+        double rotation_rad = Math.toRadians(sem_rotation);
+        
+        AffineTransform sem_transform = new AffineTransform();
+        sem_transform.translate(working_scale*(sem_xoffs + crop_x1 - secm_image.getXMin()), working_scale*(sem_yoffs + crop_y1 - secm_image.getYMin()));
+        sem_transform.rotate(rotation_rad, sem_cx, sem_cy);
+        sem_transform.scale(working_scale/sem_scale, working_scale/sem_scale);
+        if(sem_mirrorx){
+            sem_transform.translate(sem_image.getWidth(), 0.0);
+            sem_transform.scale(-1, 1);
+        }
+        if(sem_mirrory){
+            sem_transform.translate(0.0, sem_image.getHeight());
+            sem_transform.scale(1, -1);
+        }
+        AffineTransformOp ato = new AffineTransformOp(sem_transform, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+        reac_graphics.drawImage(sem_image.getImage(), ato, x0, y0);
+        
+        ////////////////////////////////
+        // reactivity-specific rendering
+        reac_cellwidth = working_scale*reac_xresolution;
+        reac_cellheight = working_scale*reac_yresolution;
         return reac;
     }
     
-    private Image drawSampling(){
+    private Image drawSampling(BufferedImage background_image){
         Image sam = drawReactivity();
         
         return sam;
@@ -233,6 +321,10 @@ public class Visualizer extends JPanel{
     private void mouseDrag(MouseEvent e){
         if(render_mode == 1){
             semMouseDrag(e);
+            updateGraphics();
+        }
+        else if(render_mode == 2){
+            reacMouseDrag(e);
             updateGraphics();
         }
     }
@@ -256,6 +348,13 @@ public class Visualizer extends JPanel{
         }
     }
     
+    private void reacMouseDrag(MouseEvent e){
+        if(crop_in_progress){
+            tentative_crop_x2 = e.getX();
+            tentative_crop_y2 = e.getY();
+        }
+    }
+    
     private void mouseExit(MouseEvent e){
         if(render_mode == 1 && rotation_in_progress){
             cancelRotation();
@@ -264,24 +363,38 @@ public class Visualizer extends JPanel{
         if(render_mode == 1 && pan_in_progress){
             cancelPan();
         }
+        
+        if(render_mode == 2 && crop_in_progress){
+            cancelCrop();
+        }
     }
     
     private void mousePress(MouseEvent e){
+        if(render_mode == 1){
+            semMousePress(e);
+        }
+        else if(render_mode == 2){
+            reacMousePress(e);
+            updateGraphics();
+        }
+    }
+    
+    private void semMousePress(MouseEvent e){
         if(e.getButton() == MouseEvent.BUTTON1){
-            if(render_mode == 1 && rotation_in_progress){
+            if(rotation_in_progress){
                 cancelRotation();
             }
-            else if(render_mode == 1){
+            else{
                 pan_in_progress = true;
                 initial_mouse_x = e.getX();
                 initial_mouse_y = e.getY();
             }
         }
         else if(e.getButton() == MouseEvent.BUTTON3){
-            if(render_mode == 1 && pan_in_progress){
+            if(pan_in_progress){
                 cancelPan();
             }
-            else if(render_mode == 1){
+            else{
                 rotation_in_progress = true;
                 initial_mouse_x = e.getX();
                 initial_mouse_y = e.getY();
@@ -290,10 +403,31 @@ public class Visualizer extends JPanel{
         }
     }
     
+    private void reacMousePress(MouseEvent e){
+        if(e.getButton() == MouseEvent.BUTTON1){
+            if(reac_tool == CROP){
+                crop_in_progress = true;
+                tentative_crop_x1 = e.getX();
+                tentative_crop_x2 = e.getX();
+                tentative_crop_y1 = e.getY();
+                tentative_crop_y2 = e.getY();
+            }
+        }
+        else if(e.getButton() == MouseEvent.BUTTON3){
+            if(reac_tool == CROP){
+                cancelCrop();
+            }
+            
+        }
+    }
+    
     private void mouseRelease(MouseEvent e){
         if(e.getButton() == MouseEvent.BUTTON1){
             if(render_mode == 1 && pan_in_progress){
                 stopPan();
+            }
+            if(render_mode == 2 && crop_in_progress){
+                stopCrop();
             }
         }
         else if(e.getButton() == MouseEvent.BUTTON3){
@@ -324,6 +458,10 @@ public class Visualizer extends JPanel{
         initial_mouse_y = 0;
     }
     
+    private void stopCrop(){
+        //TODO
+    }
+    
     private void cancelRotation(){
         rotation_in_progress = false;
         extra_rotation = 0;
@@ -342,6 +480,15 @@ public class Visualizer extends JPanel{
         initial_mouse_y = 0;
         PARENT.setSEMXOffsetField(sem_xoffs);
         PARENT.setSEMYOffsetField(sem_yoffs);
+        updateGraphics();
+    }
+    
+    private void cancelCrop(){
+        crop_in_progress = false;
+        crop_x1 = secm_image.getXMin();
+        crop_x2 = secm_image.getXMax();
+        crop_y1 = secm_image.getYMin();
+        crop_y2 = secm_image.getYMax();
         updateGraphics();
     }
     
@@ -474,6 +621,10 @@ public class Visualizer extends JPanel{
      */
     public void setSECMImage(SECMImage secm){
         secm_image = secm;
+        crop_x1 = secm_image.getXMin();
+        crop_x2 = secm_image.getXMax();
+        crop_y1 = secm_image.getYMin();
+        crop_y2 = secm_image.getYMax();
         updateGraphics();
     }
     
@@ -580,7 +731,9 @@ public class Visualizer extends JPanel{
     private float reac_sem_transparency;
     private int reac_tool;
     private double reac_xresolution;
+    private double reac_cellwidth;
     private double reac_yresolution;
+    private double reac_cellheight;
     private int render_mode;
     private double sam_num_steps_x;
     private double sam_num_steps_y;
@@ -607,6 +760,15 @@ public class Visualizer extends JPanel{
     private int initial_mouse_y;
     private double initial_mouse_phi;
     private double working_scale;
+    private double crop_x1;
+    private double crop_x2;
+    private double crop_y1;
+    private double crop_y2;
+    private boolean crop_in_progress;
+    private int tentative_crop_x1;
+    private int tentative_crop_y1;
+    private int tentative_crop_x2;
+    private int tentative_crop_y2;
 
     
     

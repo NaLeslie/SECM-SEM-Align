@@ -1,12 +1,11 @@
 /*
  * Created: 2022-01-14
- * Updated: 2022-06-10
+ * Updated: 2022-06-15
  * Nathaniel Leslie
  */
 package sem_secm_align;
 
 import java.awt.AlphaComposite;
-import java.awt.Color;
 import sem_secm_align.data_types.SECMImage;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -21,7 +20,6 @@ import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import javax.swing.JPanel;
 import sem_secm_align.data_types.SEMImage;
-import sem_secm_align.data_types.Unit;
 import sem_secm_align.settings.ColourSettings;
 import sem_secm_align.settings.Settings;
 
@@ -84,10 +82,8 @@ public class Visualizer extends JPanel{
         reac_selection_transparency = (float)settings.DEFAULT_REAC_SELECTION_TRANSPARENCY;
         reac_xresolution            =        settings.DEFAULT_REAC_XRESOLUTION;
         reac_yresolution            =        settings.DEFAULT_REAC_YRESOLUTION;
-        reac_tool = PECNCIL;
+        reac_tool = PENCIL;
         reac_grid                   =        settings.DEFAULT_REAC_SHOW_GRID;
-        reac_cellheight = working_scale*reac_xresolution;
-        reac_cellwidth = working_scale*reac_yresolution;
         crop_x1 = 0;
         crop_x2 = 1;
         crop_y1 = 0;
@@ -96,6 +92,7 @@ public class Visualizer extends JPanel{
         tentative_crop_x2 = 1;
         tentative_crop_y1 = 0;
         tentative_crop_y2 = 1;
+        switches = new int[1][1];
     }
     
     /**
@@ -188,7 +185,15 @@ public class Visualizer extends JPanel{
     private BufferedImage drawSEM(float transparency){
         int width = this.getWidth();
         int height = this.getHeight();
-        BufferedImage sem = drawSECM();
+        BufferedImage sem = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        if(transparency < 1.0f){
+            sem = drawSECM();
+        }
+        else{
+            Graphics sem_ugraphics = sem.getGraphics();
+            sem_ugraphics.setColor(ColourSettings.BACKGROUND_COLOUR);
+            sem_ugraphics.fillRect(0, 0, width, height);
+        }
         Graphics2D sem_graphics = sem.createGraphics();
         
         double secm_width = secm_image.getXMax() - secm_image.getXMin();
@@ -251,16 +256,16 @@ public class Visualizer extends JPanel{
         reac_graphics.fillRect(0, 0, width, height);
         
         //Evaluate the scaling and offsets for the cropped image
-        double crop_width = crop_x2 - crop_x1;
-        double crop_height = crop_y2 - crop_y1;
+        double crop_width = (crop_x2 - crop_x1)/secm_scale_factor;
+        double crop_height = (crop_y2 - crop_y1)/secm_scale_factor;
+        double crop_scale = (double)width/crop_width/secm_scale_factor; //pixels per metre
         
         int image_width, image_height;
-        working_scale = (double)width/crop_width/secm_scale_factor; //pixels per metre
         
         if(crop_width/width < crop_height/height){
             image_width = (int)(crop_width/crop_height*(double)height);
             image_height = height;
-            working_scale = (double)height/crop_height/secm_scale_factor;
+            crop_scale = (double)height/crop_height/secm_scale_factor;
         }
         else{
             image_width = width;
@@ -272,9 +277,9 @@ public class Visualizer extends JPanel{
         
         //render the SECM image
         for(int x = 0; x <= image_width; x++){
-            double xcoord = (double)x / (double)image_width * crop_width + crop_x1;
+            double xcoord = (double)x / (double)image_width * crop_width + crop_x1/secm_scale_factor;
             for(int y = 0; y <= image_height; y++){
-                double ycoord = (double)y / (double)image_height * crop_height + crop_y1;
+                double ycoord = (double)y / (double)image_height * crop_height + crop_y1/secm_scale_factor;
                 double current = secm_image.getScaledCurrent(xcoord, ycoord, SECMImage.INTERPOLATION_NN);
                 reac_graphics.setColor(ColourSettings.colorScale(current, ColourSettings.CSCALE_GRAY));
                 reac_graphics.fillRect(x + x0, y + y0, 1, 1);
@@ -284,31 +289,90 @@ public class Visualizer extends JPanel{
         //////////////////////////////
         //Render the cropped SEM image
         reac_graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP,reac_sem_transparency));
-        double sem_cx = (double)image_width*0.5;
-        double sem_cy = (double)image_height*0.5;
-        
-        //Transform the SEM image
-        double rotation_rad = Math.toRadians(sem_rotation);
-        
+        BufferedImage semimage = drawSEM(1.0f);
         AffineTransform sem_transform = new AffineTransform();
-        sem_transform.translate(working_scale*(sem_xoffs + crop_x1 - secm_image.getXMin()), working_scale*(sem_yoffs + crop_y1 - secm_image.getYMin()));
-        sem_transform.rotate(rotation_rad, sem_cx, sem_cy);
-        sem_transform.scale(working_scale/sem_scale, working_scale/sem_scale);
-        if(sem_mirrorx){
-            sem_transform.translate(sem_image.getWidth(), 0.0);
-            sem_transform.scale(-1, 1);
+        
+        double scalefactor = crop_scale / working_scale;
+        sem_transform.scale(scalefactor, scalefactor);
+       
+        
+        double secm_width = secm_image.getXMax() - secm_image.getXMin();
+        double secm_height = secm_image.getYMax() - secm_image.getYMin();
+        
+        int precrop_imagewidth, precrop_imageheight;
+        
+        if(secm_width/width < secm_height/height){
+            precrop_imagewidth = (int)(secm_width/secm_height*(double)height);
+            precrop_imageheight = height;
         }
-        if(sem_mirrory){
-            sem_transform.translate(0.0, sem_image.getHeight());
-            sem_transform.scale(1, -1);
+        else{
+            precrop_imagewidth = width;
+            precrop_imageheight = (int)(secm_height/secm_width*(double)width);
         }
+        
+        int precrop_x0 = (width - precrop_imagewidth) / 2;
+        int precrop_y0 = (height - precrop_imageheight) / 2;
+        
+        double x0s = ((double)precrop_x0)*scalefactor;
+        double y0s = ((double)precrop_y0)*scalefactor;
+        
+        int xdisp = getRenderX(secm_image.getXMin()*secm_scale_factor) - getRenderX(crop_x1) - (int)x0s + x0;
+        int ydisp = getRenderY(secm_image.getYMin()*secm_scale_factor) - getRenderY(crop_y1) - (int)y0s + y0;
+        
         AffineTransformOp ato = new AffineTransformOp(sem_transform, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
-        reac_graphics.drawImage(sem_image.getImage(), ato, x0, y0);
+        reac_graphics.drawImage(semimage, ato, xdisp, ydisp);
         
         ////////////////////////////////
         // reactivity-specific rendering
-        reac_cellwidth = working_scale*reac_xresolution;
-        reac_cellheight = working_scale*reac_yresolution;
+        //reac_cellwidth = reac_xresolution;
+        //reac_cellheight = reac_yresolution;
+        
+        double wstart = Math.floor((crop_x1 - secm_image.getXMin()*secm_scale_factor) / reac_xresolution);
+        double hstart = Math.floor((crop_y1 - secm_image.getYMin()*secm_scale_factor) / reac_yresolution);
+        double wstop = Math.ceil((crop_x2 - secm_image.getXMin()*secm_scale_factor) / reac_xresolution);
+        double hstop = Math.ceil((crop_y2 - secm_image.getYMin()*secm_scale_factor) / reac_yresolution);
+        
+        reac_graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP,reac_selection_transparency));
+        reac_graphics.setColor(ColourSettings.ACTIVE_COLOUR);
+        for(int w_index = (int)wstart; w_index < (int)wstop; w_index ++){
+            double x_m = secm_image.getXMin()*secm_scale_factor + reac_xresolution*(double)w_index;
+            x_m = Math.max(x_m, crop_x1);
+            double x2_m = secm_image.getXMin()*secm_scale_factor + reac_xresolution*((double)w_index + 1.0);
+            x2_m = Math.min(x2_m, crop_x2);
+            int cellwidth = getRenderX(x2_m) - getRenderX(x_m);
+            for(int h_index = (int)hstart; h_index < (int)hstop; h_index ++){
+                if(switches[w_index][h_index] > 0){
+                    double y_m = secm_image.getYMin()*secm_scale_factor + reac_yresolution*(double)h_index;
+                    y_m = Math.max(y_m, crop_y1);
+                    double y2_m = secm_image.getYMin()*secm_scale_factor + reac_yresolution*((double)h_index + 1.0);
+                    y2_m = Math.min(y2_m, crop_y2);
+                    int cellheight = getRenderY(y2_m) - getRenderY(y_m);
+                    reac_graphics.fillRect(getRenderX(x_m), getRenderY(y_m), cellwidth, cellheight);
+                }
+            }
+        }
+
+        if(reac_grid){
+            reac_graphics.setColor(ColourSettings.GRID_COLOUR);
+            for(double w_index = wstart + 1; w_index < wstop; w_index ++){
+                double linex_m = secm_image.getXMin()*secm_scale_factor + reac_xresolution*w_index;
+                int linex_p = getRenderX(linex_m);
+                reac_graphics.drawLine(linex_p, y0, linex_p, height - y0);
+            }
+
+            for(double h_index = hstart + 1; h_index < hstop; h_index ++){
+                double liney_m = secm_image.getYMin()*secm_scale_factor + reac_yresolution*h_index;
+                int liney_p = getRenderY(liney_m);
+                reac_graphics.drawLine(x0, liney_p, width - x0, liney_p);
+            }
+        }
+        
+        //render the selection box if a crop is in progress
+        if(crop_in_progress){
+            reac_graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP,1.0f));
+            reac_graphics.setColor(ColourSettings.SELECTION_COLOUR);
+            reac_graphics.drawRect(tentative_crop_x1, tentative_crop_y1, tentative_crop_x2 - tentative_crop_x1, tentative_crop_y2 - tentative_crop_y1);
+        }
         return reac;
     }
     
@@ -352,6 +416,17 @@ public class Visualizer extends JPanel{
         if(crop_in_progress){
             tentative_crop_x2 = e.getX();
             tentative_crop_y2 = e.getY();
+        }
+        else if(drawing && !erasing){
+            int mx = e.getX();
+            int my = e.getY();
+            System.out.println(getIndexX(mx));
+            switches[getIndexX(mx)][getIndexY(my)] = 1;
+        }
+        else if(erasing){
+            int mx = e.getX();
+            int my = e.getY();
+            switches[getIndexX(mx)][getIndexY(my)] = 0;
         }
     }
     
@@ -412,12 +487,23 @@ public class Visualizer extends JPanel{
                 tentative_crop_y1 = e.getY();
                 tentative_crop_y2 = e.getY();
             }
+            else if(reac_tool == PENCIL){
+                drawing = true;
+                int mx = e.getX();
+                int my = e.getY();
+                switches[getIndexX(mx)][getIndexY(my)] = 1;
+            }
         }
         else if(e.getButton() == MouseEvent.BUTTON3){
             if(reac_tool == CROP){
-                cancelCrop();
+                undoCrop();
             }
-            
+            else if(reac_tool == PENCIL){
+                erasing = true;
+                int mx = e.getX();
+                int my = e.getY();
+                switches[getIndexX(mx)][getIndexY(my)] = 0;
+            }
         }
     }
     
@@ -429,10 +515,16 @@ public class Visualizer extends JPanel{
             if(render_mode == 2 && crop_in_progress){
                 stopCrop();
             }
+            if(render_mode == 2 && drawing){
+                drawing = false;
+            }
         }
         else if(e.getButton() == MouseEvent.BUTTON3){
             if(render_mode == 1 && rotation_in_progress){
                 stopRotation();
+            }
+            if(render_mode == 2 && erasing){
+                erasing = false;
             }
         }
     }
@@ -459,7 +551,24 @@ public class Visualizer extends JPanel{
     }
     
     private void stopCrop(){
-        //TODO
+        crop_in_progress = false;
+        double cx1 = getTrueX(tentative_crop_x1);
+        double cx2 = getTrueX(tentative_crop_x2);
+        double cy1 = getTrueY(tentative_crop_y1);
+        double cy2 = getTrueY(tentative_crop_y2);
+        
+        crop_x1 = cx1;
+        crop_x2 = cx2;
+        crop_y1 = cy1;
+        crop_y2 = cy2;
+        System.out.println("x: " + getRenderX(secm_image.getXMin()));
+        System.out.println("y: " + getRenderY(secm_image.getYMin()));
+        System.out.println("x: " + (0.0 - crop_x1 + secm_image.getXMin()));
+        System.out.println("y: " + (0.0 - crop_y1 + secm_image.getYMin()));
+        System.out.println("x: " + working_scale*(0.0 - crop_x1 + secm_image.getXMin()));
+        System.out.println("y: " + working_scale*(0.0 - crop_y1 + secm_image.getYMin()));
+        System.out.println("==============================================================");
+        updateGraphics();
     }
     
     private void cancelRotation(){
@@ -485,11 +594,22 @@ public class Visualizer extends JPanel{
     
     private void cancelCrop(){
         crop_in_progress = false;
-        crop_x1 = secm_image.getXMin();
-        crop_x2 = secm_image.getXMax();
-        crop_y1 = secm_image.getYMin();
-        crop_y2 = secm_image.getYMax();
+        tentative_crop_x1 = getRenderX(crop_x1);
+        tentative_crop_x2 = getRenderX(crop_x2);
+        tentative_crop_y1 = getRenderY(crop_y1);
+        tentative_crop_y2 = getRenderY(crop_y2);
         updateGraphics();
+    }
+    
+    private void undoCrop(){
+        crop_x1 = secm_image.getXMin()*secm_scale_factor;
+        crop_x2 = secm_image.getXMax()*secm_scale_factor;
+        crop_y1 = secm_image.getYMin()*secm_scale_factor;
+        crop_y2 = secm_image.getYMax()*secm_scale_factor;
+        cancelCrop();
+        System.out.println("x: " + getRenderX(secm_image.getXMin()));
+        System.out.println("y: " + getRenderY(secm_image.getYMin()));
+        //graphics update is called in cancel crop so we don't need to call it again
     }
     
     @Override
@@ -540,6 +660,9 @@ public class Visualizer extends JPanel{
      */
     public void setReactivityXResolution(double xres){
         reac_xresolution = xres;
+        double xbins = Math.ceil((secm_image.getXMax() - secm_image.getXMin())/reac_xresolution*secm_scale_factor);
+        double ybins = Math.ceil((secm_image.getYMax() - secm_image.getYMin())/reac_yresolution*secm_scale_factor);
+        switches = new int[(int)xbins][(int)ybins];
         updateGraphics();
     }
     
@@ -549,6 +672,9 @@ public class Visualizer extends JPanel{
      */
     public void setReactivityYResolution(double yres){
         reac_yresolution = yres;
+        double xbins = Math.ceil((secm_image.getXMax() - secm_image.getXMin())/reac_xresolution*secm_scale_factor);
+        double ybins = Math.ceil((secm_image.getYMax() - secm_image.getYMin())/reac_yresolution*secm_scale_factor);
+        switches = new int[(int)xbins][(int)ybins];
         updateGraphics();
     }
     
@@ -621,10 +747,13 @@ public class Visualizer extends JPanel{
      */
     public void setSECMImage(SECMImage secm){
         secm_image = secm;
-        crop_x1 = secm_image.getXMin();
-        crop_x2 = secm_image.getXMax();
-        crop_y1 = secm_image.getYMin();
-        crop_y2 = secm_image.getYMax();
+        crop_x1 = secm_image.getXMin()*secm_scale_factor;
+        crop_x2 = secm_image.getXMax()*secm_scale_factor;
+        crop_y1 = secm_image.getYMin()*secm_scale_factor;
+        crop_y2 = secm_image.getYMax()*secm_scale_factor;
+        double xbins = Math.ceil((secm_image.getXMax() - secm_image.getXMin())/reac_xresolution*secm_scale_factor);
+        double ybins = Math.ceil((secm_image.getYMax() - secm_image.getYMin())/reac_yresolution*secm_scale_factor);
+        switches = new int[(int)xbins][(int)ybins];
         updateGraphics();
     }
     
@@ -724,6 +853,102 @@ public class Visualizer extends JPanel{
         return Math.toDegrees(Math.atan2(y, x));
     }
     
+    private double getTrueX(int mx){
+        int width = this.getWidth();
+        int height = this.getHeight();
+        //Evaluate the scaling and offsets for the cropped image
+        double crop_width = (crop_x2 - crop_x1)/secm_scale_factor;
+        double crop_height = (crop_y2 - crop_y1)/secm_scale_factor;
+        
+        int image_width;
+        
+        if(crop_width/width < crop_height/height){
+            image_width = (int)(crop_width/crop_height*(double)height);
+        }
+        else{
+            image_width = width;
+        }
+        
+        int x0 = (width - image_width)/2;
+        double xcoord = (double)(mx-x0) / (double)image_width * crop_width + crop_x1/secm_scale_factor;
+        return xcoord*secm_scale_factor;
+    }
+    
+    private double getTrueY(int my){
+        int width = this.getWidth();
+        int height = this.getHeight();
+        //Evaluate the scaling and offsets for the cropped image
+        double crop_width = (crop_x2 - crop_x1)/secm_scale_factor;
+        double crop_height = (crop_y2 - crop_y1)/secm_scale_factor;
+        
+        int image_height;
+        
+        if(crop_width/width < crop_height/height){
+            image_height = height;
+        }
+        else{
+            image_height = (int)(crop_height/crop_width*(double)width);
+        }
+        
+        int y0 = (height - image_height)/2;
+        double ycoord = (double)(my-y0) / (double)image_height * crop_height + crop_y1/secm_scale_factor;
+        return ycoord*secm_scale_factor;
+    }
+    
+    private int getRenderX(double tx){
+        int width = this.getWidth();
+        int height = this.getHeight();
+        //Evaluate the scaling and offsets for the cropped image
+        double crop_width = (crop_x2 - crop_x1)/secm_scale_factor;
+        double crop_height = (crop_y2 - crop_y1)/secm_scale_factor;
+        
+        int image_width;
+        
+        if(crop_width/width < crop_height/height){
+            image_width = (int)(crop_width/crop_height*(double)height);
+        }
+        else{
+            image_width = width;
+        }
+        
+        int x0 = (width - image_width)/2;
+        int xcoord = (int)((tx - crop_x1)/secm_scale_factor / crop_width * (double)image_width) + x0;
+        return xcoord;
+    }
+    
+    private int getRenderY(double ty){
+        int width = this.getWidth();
+        int height = this.getHeight();
+        //Evaluate the scaling and offsets for the cropped image
+        double crop_width = (crop_x2 - crop_x1)/secm_scale_factor;
+        double crop_height = (crop_y2 - crop_y1)/secm_scale_factor;
+        
+        int image_height;
+        
+        if(crop_width/width < crop_height/height){
+            image_height = height;
+        }
+        else{
+            image_height = (int)(crop_height/crop_width*(double)width);
+        }
+        
+        int y0 = (height - image_height)/2;
+        int ycoord = (int)((ty - crop_y1)/secm_scale_factor / crop_height * (double)image_height) + y0;
+        return ycoord;
+    }
+    
+    private int getIndexX(int mx){
+        double tx = getTrueX(mx);
+        double index = Math.floor((tx - secm_image.getXMin()*secm_scale_factor) / reac_xresolution);
+        return (int)index;
+    }
+    
+    private int getIndexY(int my){
+        double ty = getTrueY(my);
+        double index = Math.floor((ty - secm_image.getYMin()*secm_scale_factor) / reac_yresolution);
+        return (int)index;
+    }
+    
     //Fields
     private Image base_image;
     private boolean reac_grid;
@@ -731,9 +956,7 @@ public class Visualizer extends JPanel{
     private float reac_sem_transparency;
     private int reac_tool;
     private double reac_xresolution;
-    private double reac_cellwidth;
     private double reac_yresolution;
-    private double reac_cellheight;
     private int render_mode;
     private double sam_num_steps_x;
     private double sam_num_steps_y;
@@ -769,12 +992,14 @@ public class Visualizer extends JPanel{
     private int tentative_crop_y1;
     private int tentative_crop_x2;
     private int tentative_crop_y2;
-
+    private int[][] switches;
+    private boolean drawing;
+    private boolean erasing;
     
     
     //constants
     private final MainWindow PARENT;
-    public static final int PECNCIL = 0;
+    public static final int PENCIL = 0;
     public static final int CROP = 1;
     public static final int FILL = 2;
 

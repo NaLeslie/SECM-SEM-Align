@@ -898,7 +898,7 @@ public class MainWindow extends JFrame{
         reac_crop.setEnabled(true);
         reac_fill.setEnabled(true);
         reac_tool_select.setText("Active tool: pencil");
-        view_screen.setReactivityTool(Visualizer.PECNCIL);
+        view_screen.setReactivityTool(Visualizer.PENCIL);
     }
     
     private void cropSelect(){

@@ -1,6 +1,6 @@
 /*
  * Created: 2022-03-30
- * Updated: 2022-03-30
+ * Updated: 2022-06-15
  * Nathaniel Leslie
  */
 package sem_secm_align.settings;
@@ -23,8 +23,8 @@ public class Settings {
         DEFAULT_REAC_SELECTION_TRANSPARENCY = 0.5;
         DEFAULT_REAC_SEM_TRANSPARENCY = 0.5;
         DEFAULT_REAC_SHOW_GRID = true;
-        DEFAULT_REAC_XRESOLUTION = 1e-7;
-        DEFAULT_REAC_YRESOLUTION = 1e-7;
+        DEFAULT_REAC_XRESOLUTION = 5e-6;
+        DEFAULT_REAC_YRESOLUTION = 5e-6;
         DEFAULT_SAM_NUM_XSTEPS = 1;
         DEFAULT_SAM_NUM_YSTEPS = 1;
         DEFAULT_SAM_XSTART_INDEX = 0;

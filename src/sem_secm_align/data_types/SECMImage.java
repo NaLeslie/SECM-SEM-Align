@@ -102,6 +102,10 @@ public class SECMImage {
         return data[x_index][y_index];
     }
     
+    public double getCurrent(double x, double y, int interpolation_mode){
+        return Double.NaN;
+    }
+    
     public double getXMin(){
         return x_coordinates[0];
     }
@@ -219,5 +223,6 @@ public class SECMImage {
     private double[] y_coordinates;
     
     public static final int INTERPOLATION_NN = 0;
-    
+    public static final int INTERPOLATION_BILINEAR = 1;
+    public static final int INTERPOLATION_BICUBIC = 2;
 }

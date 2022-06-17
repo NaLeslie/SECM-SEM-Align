@@ -1,6 +1,6 @@
 /*
  * Created: 2022-01-14
- * Updated: 2022-04-11
+ * Updated: 2022-06-17
  * Nathaniel Leslie
  */
 package sem_secm_align;
@@ -12,6 +12,7 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import javax.swing.JButton;
@@ -30,6 +31,7 @@ import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import sem_secm_align.data_types.SECMImage;
 import sem_secm_align.data_types.SEMImage;
+import sem_secm_align.data_types.Unit;
 import sem_secm_align.settings.Settings;
 
 /**
@@ -43,9 +45,11 @@ public class MainWindow extends JFrame{
         SETTINGS = new Settings();
         view_screen = new Visualizer(this, SETTINGS);
         control_panel = new JTabbedPane();
+        position_indicator = new JLabel("");
 
         //initialize internal settings
         secm_current_scale_factor   =   SETTINGS.UNITS_CURRENT[SETTINGS.DEFAULT_CURRENT_UNIT_SELECTION].getFactor();
+        secm_distance_unit          =   SETTINGS.UNITS_DISTANCE[SETTINGS.DEFAULT_DISTANCE_UNIT_SELECTION];
         sem_scale_accepted          =   SETTINGS.DEFAULT_SEM_SCALE;
         sem_xoffs_accepted          =   SETTINGS.DEFAULT_SEM_XOFFSET;
         sem_yoffs_accepted          =   SETTINGS.DEFAULT_SEM_YOFFSET;
@@ -77,6 +81,8 @@ public class MainWindow extends JFrame{
         this.add(view_screen, c);
         c.gridy = 1;
         c.weighty = 0;
+        this.add(position_indicator, c);
+        c.gridy = 2;
         this.add(control_panel, c);// </editor-fold>
         
         // <editor-fold defaultstate="collapsed" desc="SECM tab">
@@ -651,7 +657,8 @@ public class MainWindow extends JFrame{
     private void secmDistanceUnitsChange(ActionEvent e){
         int selection = secm_distance_units.getSelectedIndex();
         if(selection > -1){
-            view_screen.setSECMScale(SETTINGS.UNITS_CURRENT[selection].getFactor());
+            secm_distance_unit = SETTINGS.UNITS_CURRENT[selection];
+            view_screen.setSECMScale(secm_distance_unit.getFactor());
         }
     }
     
@@ -920,7 +927,30 @@ public class MainWindow extends JFrame{
     
     //<editor-fold defaultstate="collapsed" desc="Sampling event methods">
     private void samGenerate(){
-        
+        try{
+            FileFilter ffcsv = new FileNameExtensionFilter( "Comma Separated Values", "csv");
+            FileFilter fftsv = new FileNameExtensionFilter( "Tab Separated Values", "tsv");
+            JFileChooser filedialog = new JFileChooser();
+            filedialog.addChoosableFileFilter(ffcsv);
+            filedialog.addChoosableFileFilter(fftsv);
+            filedialog.setFileFilter(ffcsv);
+            int response = filedialog.showSaveDialog(this);
+            if(response == JFileChooser.APPROVE_OPTION){
+                String flpth = "" + filedialog.getSelectedFile().getPath();
+                FileFilter selected = filedialog.getFileFilter();
+                int filetype = Visualizer.FILETYPE_NOT_SPECIFIED;
+                if(selected.equals(ffcsv)){
+                    filetype = Visualizer.FILETYPE_CSV;
+                }
+                else if(selected.equals(fftsv)){
+                    filetype = Visualizer.FILETYPE_TSV;
+                }
+                view_screen.saveData(flpth, filetype, SECMImage.INTERPOLATION_BICUBIC);
+            }
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
     }
     private void samStartXFieldChange(KeyEvent e){
         try{
@@ -1121,8 +1151,39 @@ public class MainWindow extends JFrame{
         sem_yoffs_accepted = yoffs;
     }
     
+    public void updatePositionIndicator(double x_pos, double y_pos, int x_index, int y_index, int informationMode){
+        double factor = secm_distance_unit.getFactor();
+        String unit_text = secm_distance_unit.getLabel();
+        String text = "";
+        switch(informationMode){
+            case POSITION_INFO_NONE:
+                position_indicator.setText("");
+                break;
+            case POSITION_INFO_TRUE:
+                x_pos /= factor;
+                y_pos /= factor;
+                text = String.format(" x: %1.2f %s, y: %1.2f %s", x_pos, unit_text, y_pos, unit_text);
+                position_indicator.setText(text);
+                break;
+            case POSITION_INFO_TRUE_AND_INDEX:
+                x_pos /= factor;
+                y_pos /= factor;
+                text = String.format(" x: %1.2f %s index: %d, y: %1.2f %s index: %d", x_pos, unit_text, x_index, y_pos, unit_text, y_index);
+                position_indicator.setText(text);
+                break;
+            case POSITION_INFO_INDEX:
+                text = String.format(" x index: %d, y index: %d", x_index, y_index);
+                position_indicator.setText(text);
+                break;
+            default:
+                position_indicator.setText("");
+                break;
+        }
+    }
+    
     //Fields
     private double secm_current_scale_factor;
+    private Unit secm_distance_unit;
     private double sem_scale_accepted;
     private double sem_xoffs_accepted;
     private double sem_yoffs_accepted;
@@ -1136,7 +1197,7 @@ public class MainWindow extends JFrame{
     private int sam_step_size_y_accepted;
     private int sam_num_steps_y_accepted;
     
-    
+
     //Widgets
     //SECM
     JButton secm_open_button;
@@ -1179,6 +1240,7 @@ public class MainWindow extends JFrame{
     
     //Global
     Visualizer view_screen;
+    JLabel position_indicator;
     JTabbedPane control_panel;
     
     //Statics
@@ -1187,5 +1249,10 @@ public class MainWindow extends JFrame{
     private static final int DEFAULT_PAD = 3;
     private static final int SPACER_PAD = 5;
     private static final int SIGFIGS = 5;
+    //information
+    public static final int POSITION_INFO_NONE = 0;
+    public static final int POSITION_INFO_TRUE = 1;
+    public static final int POSITION_INFO_TRUE_AND_INDEX = 2;
+    public static final int POSITION_INFO_INDEX = 3;
     public Settings SETTINGS;
 }

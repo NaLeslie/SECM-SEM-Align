@@ -1,6 +1,6 @@
 /*
  * Created: 2022-01-14
- * Updated: 2022-06-15
+ * Updated: 2022-06-17
  * Nathaniel Leslie
  */
 package sem_secm_align;
@@ -18,13 +18,19 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Stack;
 import javax.swing.JPanel;
 import sem_secm_align.data_types.SEMImage;
 import sem_secm_align.settings.ColourSettings;
 import sem_secm_align.settings.Settings;
 
 /**
- * Handles rendering of the visualising panel
+ * Handles rendering of the visualizing panel
  * @author Nathaniel
  */
 public class Visualizer extends JPanel{
@@ -51,6 +57,10 @@ public class Visualizer extends JPanel{
             @Override
             public void mouseDragged(MouseEvent evt){
                 mouseDrag(evt);
+            }
+            @Override
+            public void mouseMoved(MouseEvent evt) {
+                mouseMove(evt);
             }
         });
         this.addComponentListener(new ComponentAdapter() {
@@ -119,6 +129,11 @@ public class Visualizer extends JPanel{
                 }
                 break;
             case 3://draw sampling
+                if(secm_image.isDisplayable()){
+                    base_image = drawSampling();
+                }else{
+                    base_image = defaultImage();
+                }
                 break;
             default: //just draw SECM
                 if(secm_image.isDisplayable()){
@@ -288,40 +303,41 @@ public class Visualizer extends JPanel{
         
         //////////////////////////////
         //Render the cropped SEM image
-        reac_graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP,reac_sem_transparency));
-        BufferedImage semimage = drawSEM(1.0f);
-        AffineTransform sem_transform = new AffineTransform();
-        
-        double scalefactor = crop_scale / working_scale;
-        sem_transform.scale(scalefactor, scalefactor);
-       
-        
-        double secm_width = secm_image.getXMax() - secm_image.getXMin();
-        double secm_height = secm_image.getYMax() - secm_image.getYMin();
-        
-        int precrop_imagewidth, precrop_imageheight;
-        
-        if(secm_width/width < secm_height/height){
-            precrop_imagewidth = (int)(secm_width/secm_height*(double)height);
-            precrop_imageheight = height;
+        if(sem_image.isDisplayable()){
+            reac_graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP,reac_sem_transparency));
+            BufferedImage semimage = drawSEM(1.0f);
+            AffineTransform sem_transform = new AffineTransform();
+
+            double scalefactor = crop_scale / working_scale;
+            sem_transform.scale(scalefactor, scalefactor);
+
+
+            double secm_width = secm_image.getXMax() - secm_image.getXMin();
+            double secm_height = secm_image.getYMax() - secm_image.getYMin();
+
+            int precrop_imagewidth, precrop_imageheight;
+
+            if(secm_width/width < secm_height/height){
+                precrop_imagewidth = (int)(secm_width/secm_height*(double)height);
+                precrop_imageheight = height;
+            }
+            else{
+                precrop_imagewidth = width;
+                precrop_imageheight = (int)(secm_height/secm_width*(double)width);
+            }
+
+            int precrop_x0 = (width - precrop_imagewidth) / 2;
+            int precrop_y0 = (height - precrop_imageheight) / 2;
+
+            double x0s = ((double)precrop_x0)*scalefactor;
+            double y0s = ((double)precrop_y0)*scalefactor;
+
+            int xdisp = getRenderX(secm_image.getXMin()*secm_scale_factor) - getRenderX(crop_x1) - (int)x0s + x0;
+            int ydisp = getRenderY(secm_image.getYMin()*secm_scale_factor) - getRenderY(crop_y1) - (int)y0s + y0;
+
+            AffineTransformOp ato = new AffineTransformOp(sem_transform, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+            reac_graphics.drawImage(semimage, ato, xdisp, ydisp);
         }
-        else{
-            precrop_imagewidth = width;
-            precrop_imageheight = (int)(secm_height/secm_width*(double)width);
-        }
-        
-        int precrop_x0 = (width - precrop_imagewidth) / 2;
-        int precrop_y0 = (height - precrop_imageheight) / 2;
-        
-        double x0s = ((double)precrop_x0)*scalefactor;
-        double y0s = ((double)precrop_y0)*scalefactor;
-        
-        int xdisp = getRenderX(secm_image.getXMin()*secm_scale_factor) - getRenderX(crop_x1) - (int)x0s + x0;
-        int ydisp = getRenderY(secm_image.getYMin()*secm_scale_factor) - getRenderY(crop_y1) - (int)y0s + y0;
-        
-        AffineTransformOp ato = new AffineTransformOp(sem_transform, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
-        reac_graphics.drawImage(semimage, ato, xdisp, ydisp);
-        
         ////////////////////////////////
         // reactivity-specific rendering
         //reac_cellwidth = reac_xresolution;
@@ -376,13 +392,32 @@ public class Visualizer extends JPanel{
         return reac;
     }
     
-    private Image drawSampling(BufferedImage background_image){
-        Image sam = drawReactivity();
+    private Image drawSampling(){
+        BufferedImage sam = drawReactivity();
+        Graphics2D sam_graphics = sam.createGraphics();
+        
+        sam_graphics.setColor(ColourSettings.SAMPLE_COLOUR);
+        for(int xindex = sam_start_x; xindex < sam_start_x + sam_num_steps_x*sam_step_size_x; xindex += sam_step_size_x){
+            double x_m = secm_image.getXMin()*secm_scale_factor + reac_xresolution*(double)xindex;
+            x_m = Math.max(x_m, crop_x1);
+            double x2_m = secm_image.getXMin()*secm_scale_factor + reac_xresolution*((double)xindex + 1.0);
+            x2_m = Math.min(x2_m, crop_x2);
+            int cellwidth = getRenderX(x2_m) - getRenderX(x_m);
+            for(int yindex = sam_start_y; yindex < sam_start_y + sam_num_steps_y*sam_step_size_y; yindex += sam_step_size_y){
+                double y_m = secm_image.getYMin()*secm_scale_factor + reac_yresolution*(double)yindex;
+                y_m = Math.max(y_m, crop_y1);
+                double y2_m = secm_image.getYMin()*secm_scale_factor + reac_yresolution*((double)yindex + 1.0);
+                y2_m = Math.min(y2_m, crop_y2);
+                int cellheight = getRenderY(y2_m) - getRenderY(y_m);
+                sam_graphics.fillRect(getRenderX(x_m), getRenderY(y_m), cellwidth, cellheight);
+            }
+        }
         
         return sam;
     }
     
     private void mouseDrag(MouseEvent e){
+        reportMousePosition(e.getX(), e.getY());
         if(render_mode == 1){
             semMouseDrag(e);
             updateGraphics();
@@ -420,7 +455,6 @@ public class Visualizer extends JPanel{
         else if(drawing && !erasing){
             int mx = e.getX();
             int my = e.getY();
-            System.out.println(getIndexX(mx));
             switches[getIndexX(mx)][getIndexY(my)] = 1;
         }
         else if(erasing){
@@ -441,6 +475,40 @@ public class Visualizer extends JPanel{
         
         if(render_mode == 2 && crop_in_progress){
             cancelCrop();
+        }
+    }
+    
+    private void mouseMove(MouseEvent e){
+        reportMousePosition(e.getX(), e.getY());
+    }
+    
+    private void reportMousePosition(int mx, int my){
+        if(secm_image.isDisplayable()){
+            double true_x = getTrueX(mx);
+            double true_y = getTrueY(my);
+            int index_x = getIndexX(mx);
+            int index_y = getIndexY(my);
+            int information_mode;
+            switch(render_mode){
+                case 0:
+                    information_mode = MainWindow.POSITION_INFO_TRUE;
+                    break;
+                case 1:
+                    information_mode = MainWindow.POSITION_INFO_TRUE;
+                    break;
+                case 2:
+                    information_mode = MainWindow.POSITION_INFO_TRUE_AND_INDEX;
+                    break;
+                case 3:
+                    information_mode = MainWindow.POSITION_INFO_INDEX;
+                    break;
+                default:
+                    information_mode = MainWindow.POSITION_INFO_NONE;
+            }
+            PARENT.updatePositionIndicator(true_x, true_y, index_x, index_y, information_mode);
+        }
+        else{
+            PARENT.updatePositionIndicator(0, 0, 0, 0, MainWindow.POSITION_INFO_NONE);
         }
     }
     
@@ -493,6 +561,14 @@ public class Visualizer extends JPanel{
                 int my = e.getY();
                 switches[getIndexX(mx)][getIndexY(my)] = 1;
             }
+            else if(reac_tool == FILL){
+                int mx = e.getX();
+                int my = e.getY();
+                int ix = getIndexX(mx);
+                int iy = getIndexY(my);
+                switches[ix][iy] = 1;
+                fill(ix, iy, 0, 1);
+            }
         }
         else if(e.getButton() == MouseEvent.BUTTON3){
             if(reac_tool == CROP){
@@ -503,6 +579,14 @@ public class Visualizer extends JPanel{
                 int mx = e.getX();
                 int my = e.getY();
                 switches[getIndexX(mx)][getIndexY(my)] = 0;
+            }
+            else if(reac_tool == FILL){
+                int mx = e.getX();
+                int my = e.getY();
+                int ix = getIndexX(mx);
+                int iy = getIndexY(my);
+                switches[ix][iy] = 0;
+                fill(ix, iy, 1, 0);
             }
         }
     }
@@ -561,13 +645,6 @@ public class Visualizer extends JPanel{
         crop_x2 = cx2;
         crop_y1 = cy1;
         crop_y2 = cy2;
-        System.out.println("x: " + getRenderX(secm_image.getXMin()));
-        System.out.println("y: " + getRenderY(secm_image.getYMin()));
-        System.out.println("x: " + (0.0 - crop_x1 + secm_image.getXMin()));
-        System.out.println("y: " + (0.0 - crop_y1 + secm_image.getYMin()));
-        System.out.println("x: " + working_scale*(0.0 - crop_x1 + secm_image.getXMin()));
-        System.out.println("y: " + working_scale*(0.0 - crop_y1 + secm_image.getYMin()));
-        System.out.println("==============================================================");
         updateGraphics();
     }
     
@@ -607,9 +684,48 @@ public class Visualizer extends JPanel{
         crop_y1 = secm_image.getYMin()*secm_scale_factor;
         crop_y2 = secm_image.getYMax()*secm_scale_factor;
         cancelCrop();
-        System.out.println("x: " + getRenderX(secm_image.getXMin()));
-        System.out.println("y: " + getRenderY(secm_image.getYMin()));
         //graphics update is called in cancel crop so we don't need to call it again
+    }
+    
+    private void fill(int xorigin, int yorigin, int toreplace, int replacewith){
+        int xmax = switches.length;
+        int ymax = switches[0].length;
+        Stack<Integer> x_stack = new Stack<>();
+        Stack<Integer> y_stack = new Stack<>();
+        x_stack.push(xorigin);
+        y_stack.push(yorigin);
+        while(!x_stack.empty()){
+            int x = x_stack.pop();
+            int y = y_stack.pop();
+            if(x+1 < xmax){
+                if(switches[x+1][y] == toreplace){
+                    switches[x+1][y] = replacewith;
+                    x_stack.push(x+1);
+                    y_stack.push(y);
+                }
+            }
+            if(x > 0){
+                if(switches[x-1][y] == toreplace){
+                    switches[x-1][y] = replacewith;
+                    x_stack.push(x-1);
+                    y_stack.push(y);
+                }
+            }
+            if(y+1 < ymax){
+                if(switches[x][y+1] == toreplace){
+                    switches[x][y+1] = replacewith;
+                    x_stack.push(x);
+                    y_stack.push(y+1);
+                }
+            }
+            if(y > 0){
+                if(switches[x][y-1] == toreplace){
+                    switches[x][y-1] = replacewith;
+                    x_stack.push(x);
+                    y_stack.push(y-1);
+                }
+            }
+        }
     }
     
     @Override
@@ -659,11 +775,13 @@ public class Visualizer extends JPanel{
      * @param xres 
      */
     public void setReactivityXResolution(double xres){
-        reac_xresolution = xres;
-        double xbins = Math.ceil((secm_image.getXMax() - secm_image.getXMin())/reac_xresolution*secm_scale_factor);
-        double ybins = Math.ceil((secm_image.getYMax() - secm_image.getYMin())/reac_yresolution*secm_scale_factor);
-        switches = new int[(int)xbins][(int)ybins];
-        updateGraphics();
+        if(reac_xresolution != xres){
+            reac_xresolution = xres;
+            double xbins = Math.ceil((secm_image.getXMax() - secm_image.getXMin())/reac_xresolution*secm_scale_factor);
+            double ybins = Math.ceil((secm_image.getYMax() - secm_image.getYMin())/reac_yresolution*secm_scale_factor);
+            switches = new int[(int)xbins][(int)ybins];
+            updateGraphics();
+        }
     }
     
     /**
@@ -671,11 +789,13 @@ public class Visualizer extends JPanel{
      * @param yres 
      */
     public void setReactivityYResolution(double yres){
-        reac_yresolution = yres;
-        double xbins = Math.ceil((secm_image.getXMax() - secm_image.getXMin())/reac_xresolution*secm_scale_factor);
-        double ybins = Math.ceil((secm_image.getYMax() - secm_image.getYMin())/reac_yresolution*secm_scale_factor);
-        switches = new int[(int)xbins][(int)ybins];
-        updateGraphics();
+        if(reac_yresolution != yres){
+            reac_yresolution = yres;
+            double xbins = Math.ceil((secm_image.getXMax() - secm_image.getXMin())/reac_xresolution*secm_scale_factor);
+            double ybins = Math.ceil((secm_image.getYMax() - secm_image.getYMin())/reac_yresolution*secm_scale_factor);
+            switches = new int[(int)xbins][(int)ybins];
+            updateGraphics();
+        }
     }
     
     /**
@@ -949,6 +1069,63 @@ public class Visualizer extends JPanel{
         return (int)index;
     }
     
+    public void saveData(String filepath, int fileformat, int interpolation) throws IOException{
+        String data_separator;
+        String encoding;
+        String[] broken = filepath.split(".");
+        String extension = broken[broken.length - 1];
+        switch (fileformat) {
+            case FILETYPE_CSV:
+                data_separator = ",";
+                encoding = "csv";
+                if(!extension.equalsIgnoreCase("csv")){
+                    filepath = filepath.concat(".csv");
+                }
+                break;
+            case FILETYPE_TSV:
+                data_separator = "\t";
+                encoding = "tsv";
+                if(!extension.equalsIgnoreCase("tsv")){
+                    filepath = filepath.concat(".tsv");
+                }
+                break;
+            case FILETYPE_NOT_SPECIFIED:
+            default:
+                encoding = "csv";
+                data_separator = ",";
+                break;
+        }
+        File f = new File(filepath);
+        f.createNewFile();
+        try (PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(f)))) {
+            pw.println("##ENCODING: " + encoding);
+            pw.println("##X-Sampling: StartIndex,StepSize,NumberOfSteps");
+            pw.println(String.format("%d,%d,%d", sam_start_x, sam_step_size_x, sam_num_steps_x));
+            pw.println("##Y-Sampling: StartIndex,StepSize,NumberOfSteps");
+            pw.println(String.format("%d,%d,%d", sam_start_y, sam_step_size_y, sam_num_steps_y));
+            pw.print(String.format("##xindex%syindex%sswitch%sxcoord%sycoord%scurrent", data_separator, data_separator, data_separator, data_separator, data_separator));
+            
+            for(int xindex = 0; xindex < switches.length; xindex ++){
+                double x1 = secm_image.getXMin()*secm_scale_factor + reac_xresolution*(double)xindex;
+                x1 = Math.max(x1, secm_image.getXMin());
+                double x2 = secm_image.getXMin()*secm_scale_factor + reac_xresolution*((double)xindex + 1.0);
+                x2 = Math.min(x2, secm_image.getXMax());
+                double x_coord = 0.5*(x1 + x2);
+                for(int yindex = 0; yindex < switches[0].length; yindex ++){
+                    double y1 = secm_image.getYMin()*secm_scale_factor + reac_yresolution*(double)yindex;
+                    y1 = Math.max(y1, secm_image.getYMin());
+                    double y2 = secm_image.getYMin()*secm_scale_factor + reac_yresolution*((double)yindex + 1.0);
+                    y2 = Math.min(y2, secm_image.getYMax());
+                    double y_coord = 0.5*(y1 + y2);
+                    double current = secm_image.getCurrent(x_coord, y_coord, interpolation);
+                    pw.print(String.format("\n%d%s%d%s%d%s%.6E%s%.6E%s%.6E",
+                            xindex, data_separator, yindex, data_separator, switches[xindex][yindex], data_separator,
+                            x_coord, data_separator, y_coord, data_separator, current));
+                }
+            }
+        }
+    }
+    
     //Fields
     private Image base_image;
     private boolean reac_grid;
@@ -958,12 +1135,12 @@ public class Visualizer extends JPanel{
     private double reac_xresolution;
     private double reac_yresolution;
     private int render_mode;
-    private double sam_num_steps_x;
-    private double sam_num_steps_y;
-    private double sam_start_x;
-    private double sam_start_y;
-    private double sam_step_size_x;
-    private double sam_step_size_y;
+    private int sam_num_steps_x;
+    private int sam_num_steps_y;
+    private int sam_start_x;
+    private int sam_start_y;
+    private int sam_step_size_x;
+    private int sam_step_size_y;
     private SECMImage secm_image;
     private double secm_scale_factor;
     private SEMImage sem_image;
@@ -996,11 +1173,12 @@ public class Visualizer extends JPanel{
     private boolean drawing;
     private boolean erasing;
     
-    
     //constants
     private final MainWindow PARENT;
     public static final int PENCIL = 0;
     public static final int CROP = 1;
     public static final int FILL = 2;
-
+    public static final int FILETYPE_NOT_SPECIFIED = 0;
+    public static final int FILETYPE_CSV = 1;
+    public static final int FILETYPE_TSV = 2;
 }

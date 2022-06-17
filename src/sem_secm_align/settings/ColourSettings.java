@@ -25,6 +25,7 @@ public class ColourSettings {
     
     public static final Color BACKGROUND_COLOUR = new Color(0,0,0);
     public static final Color ACTIVE_COLOUR = new Color(255,0,0);
+    public static final Color SAMPLE_COLOUR = new Color(255,127,0);
     public static final Color INACTIVE_COLOUR = new Color(0,0,0);
     public static final Color GRID_COLOUR = new Color(0,0,255);
     public static final Color SELECTION_COLOUR = new Color(255,255,0);

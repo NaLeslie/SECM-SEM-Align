@@ -13,6 +13,9 @@ import sem_secm_align.data_types.Unit;
  */
 public class Settings {
     
+    /**
+     * Gives default values to the settings.
+     */
     public Settings(){
         UNITS_DISTANCE = new Unit[]{new Unit("nm", 1e-9), new Unit("um", 1e-6), new Unit("mm", 1e-3), new Unit("m", 1.0)};
         UNITS_CURRENT = new Unit[]{new Unit("pA", 1e-12), new Unit("nA", 1e-9), new Unit("uA", 1e-6), new Unit("mA", 1e-3), new Unit("A", 1.0)};
@@ -102,14 +105,29 @@ public class Settings {
      */
     public final int DEFAULT_DISTANCE_UNIT_SELECTION;
     
+    /**
+     * The default transparency of the reactivity screen's grid-section selection layer 
+     */
     public final double DEFAULT_REAC_SELECTION_TRANSPARENCY;
     
+    /**
+     * The default transparency of the reactivity screen's SEM layer
+     */
     public final double DEFAULT_REAC_SEM_TRANSPARENCY;
     
+    /**
+     * The default state of the reactivity screen's grid toggle
+     */
     public final boolean DEFAULT_REAC_SHOW_GRID;
     
+    /**
+     * the default distance in x between adjacent grid-sections
+     */
     public final double DEFAULT_REAC_XRESOLUTION;
     
+    /**
+     * the default distance in y between adjacent grid-sections
+     */
     public final double DEFAULT_REAC_YRESOLUTION;
     
     /**
@@ -117,30 +135,69 @@ public class Settings {
      */
     public final int DEFAULT_RESOLUTION_UNIT_SELECTION;
     
+    /**
+     * The default number of steps in x that will be sampled
+     */
     public final int DEFAULT_SAM_NUM_XSTEPS;
     
+    /**
+     * The default number of steps in y that will be sampled
+     */
     public final int DEFAULT_SAM_NUM_YSTEPS;
     
+    /**
+     * x-address of the first grid-section to be sampled
+     */
     public final int DEFAULT_SAM_XSTART_INDEX;
     
+    /**
+     * The distance to the next sampled points along the x-direction in grid-sections
+     */
     public final int DEFAULT_SAM_XSTEP;
     
+    /**
+     * y-address of the first grid-section to be sampled
+     */
     public final int DEFAULT_SAM_YSTART_INDEX;
     
+    /**
+     * The distance to the next sampled points along the y-direction in grid-sections
+     */
     public final int DEFAULT_SAM_YSTEP;
     
+    /**
+     * Initial rotation of the SEM image relative to the SECM image in degrees
+     */
     public final double DEFAULT_SEM_ROTATION;
     
+    /**
+     * Initial scale of the SEM image in pixels per metre
+     */
     public final double DEFAULT_SEM_SCALE;
     
+    /**
+     * Initial transparency of the SEM layer in the SEM tab
+     */
     public final double DEFAULT_SEM_Transparency;
     
+    /**
+     * Whether or not the SEM image is to be mirrored in the x-direction initially
+     */
     public final boolean DEFAULT_SEM_XMIRROR;
     
+    /**
+     * The initial translation of the SEM image relative to the SECM image in the x-direction in metres
+     */
     public final double DEFAULT_SEM_XOFFSET;
     
+    /**
+     * Whether or not the SEM image is to be mirrored in the x-direction initially
+     */
     public final boolean DEFAULT_SEM_YMIRROR;
     
+    /**
+     * The initial translation of the SEM image relative to the SECM image in the y-direction in metres
+     */
     public final double DEFAULT_SEM_YOFFSET;
     
 }

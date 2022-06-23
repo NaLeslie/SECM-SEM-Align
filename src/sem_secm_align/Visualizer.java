@@ -1,6 +1,6 @@
 /*
  * Created: 2022-01-14
- * Updated: 2022-06-17
+ * Updated: 2022-06-22
  * Nathaniel Leslie
  */
 package sem_secm_align;
@@ -34,7 +34,11 @@ import sem_secm_align.settings.Settings;
  * @author Nathaniel
  */
 public class Visualizer extends JPanel{
-    
+    /**
+     * Creates a new instance of <code>Visualizer</code>.
+     * @param parent The parent window for this component so that this component may communicate with its parent.
+     * @param settings The default settings of the parent component.
+     */
     @SuppressWarnings("OverridableMethodCallInConstructor")
     public Visualizer(MainWindow parent, Settings settings){
         PARENT = parent;
@@ -110,7 +114,7 @@ public class Visualizer extends JPanel{
      */
     public void updateGraphics(){
         switch (render_mode) {
-            case 1://draw SECM and SEM
+            case SEM_MODE://draw SECM and SEM
                 if(secm_image.isDisplayable()){
                     if(sem_image.isDisplayable()){
                         base_image = drawSEM(sem_transparency);
@@ -121,14 +125,14 @@ public class Visualizer extends JPanel{
                     base_image = defaultImage();
                 }
                 break;
-            case 2://draw reactivity
+            case REACTIVITY_MODE://draw reactivity
                 if(secm_image.isDisplayable()){
                     base_image = drawReactivity();
                 }else{
                     base_image = defaultImage();
                 }
                 break;
-            case 3://draw sampling
+            case SAMPLING_MODE://draw sampling
                 if(secm_image.isDisplayable()){
                     base_image = drawSampling();
                 }else{
@@ -146,6 +150,10 @@ public class Visualizer extends JPanel{
         repaint();
     }
     
+    /**
+     * Creates a black image the same size as this component.
+     * @return a black image the same size as this component.
+     */
     private BufferedImage defaultImage(){
         int width = this.getWidth();
         int height = this.getHeight();
@@ -156,6 +164,10 @@ public class Visualizer extends JPanel{
         return def;
     }
     
+    /**
+     * Creates an image of the SECM image using nearest neighbor interpolation.
+     * @return an image of the SECM image.
+     */
     private BufferedImage drawSECM(){
         int width = this.getWidth();
         int height = this.getHeight();
@@ -189,7 +201,7 @@ public class Visualizer extends JPanel{
             for(int y = 0; y <= image_height; y++){
                 double ycoord = (double)y / (double)image_height * secm_height + secm_image.getYMin();
                 double current = secm_image.getScaledCurrent(xcoord, ycoord, SECMImage.INTERPOLATION_NN);
-                secm_graphics.setColor(ColourSettings.colorScale(current, ColourSettings.CSCALE_GRAY));
+                secm_graphics.setColor(ColourSettings.colorScale(current, ColourSettings.CSCALE_GREY));
                 secm_graphics.fillRect(x + x0, y + y0, 1, 1);
             }
         }
@@ -197,6 +209,11 @@ public class Visualizer extends JPanel{
         return secm;
     }
     
+    /**
+     * Creates an image of the SEM image with the set transparency overlaid on the SECM image.
+     * The SECM image is rendered the same way as <code>drawSECM()</code>.
+     * @return an image of the SEM image with the set transparency overlaid on the SECM image.
+     */
     private BufferedImage drawSEM(float transparency){
         int width = this.getWidth();
         int height = this.getHeight();
@@ -260,6 +277,12 @@ public class Visualizer extends JPanel{
         return sem;
     }
     
+    /**
+     * Creates an image of the Reactivity selection with the set transparency overlaid on the SEM image with the set transparency overlaid on the SECM image.
+     * Renders and zooms into a cropped region.
+     * Rendering also includes the grid (if enabled) and the selection box when the crop tool is in use.
+     * @return an image of the reactivity.
+     */
     private BufferedImage drawReactivity(){
         /////////////////////////////
         //draw the cropped SECM image
@@ -296,7 +319,7 @@ public class Visualizer extends JPanel{
             for(int y = 0; y <= image_height; y++){
                 double ycoord = (double)y / (double)image_height * crop_height + crop_y1/secm_scale_factor;
                 double current = secm_image.getScaledCurrent(xcoord, ycoord, SECMImage.INTERPOLATION_NN);
-                reac_graphics.setColor(ColourSettings.colorScale(current, ColourSettings.CSCALE_GRAY));
+                reac_graphics.setColor(ColourSettings.colorScale(current, ColourSettings.CSCALE_GREY));
                 reac_graphics.fillRect(x + x0, y + y0, 1, 1);
             }
         }
@@ -392,6 +415,11 @@ public class Visualizer extends JPanel{
         return reac;
     }
     
+    /**
+     * Creates an image of the reactivity with the pixels that will be sampled being shaded orange.
+     * Calls <code>drawReactivity()</code> and then renders the orange grid-sections on top.
+     * @return 
+     */
     private Image drawSampling(){
         BufferedImage sam = drawReactivity();
         Graphics2D sam_graphics = sam.createGraphics();
@@ -416,18 +444,26 @@ public class Visualizer extends JPanel{
         return sam;
     }
     
+    /**
+     * Handles <code>mouseDragged()</code> input from this component's listener.
+     * @param e The mouse event details
+     */
     private void mouseDrag(MouseEvent e){
         reportMousePosition(e.getX(), e.getY());
-        if(render_mode == 1){
+        if(render_mode == SEM_MODE){
             semMouseDrag(e);
             updateGraphics();
         }
-        else if(render_mode == 2){
+        else if(render_mode == REACTIVITY_MODE){
             reacMouseDrag(e);
             updateGraphics();
         }
     }
     
+    /**
+     * Specific code for handling <code>mouseDragged()</code> events when in SEM mode.
+     * @param e The mouse event details
+     */
     private void semMouseDrag(MouseEvent e){
         int mousex = e.getX();
         int mousey = e.getY();
@@ -447,6 +483,10 @@ public class Visualizer extends JPanel{
         }
     }
     
+    /**
+     * Specific code for handling <code>mouseDragged()</code> events when in reactivity mode.
+     * @param e The mouse event details
+     */
     private void reacMouseDrag(MouseEvent e){
         if(crop_in_progress){
             tentative_crop_x2 = e.getX();
@@ -464,24 +504,37 @@ public class Visualizer extends JPanel{
         }
     }
     
+    /**
+     * Handles <code>mouseExited()</code> input from this component's listener.
+     * @param e The mouse event details
+     */
     private void mouseExit(MouseEvent e){
-        if(render_mode == 1 && rotation_in_progress){
+        if(render_mode == SEM_MODE && rotation_in_progress){
             cancelRotation();
         }
 
-        if(render_mode == 1 && pan_in_progress){
+        if(render_mode == SEM_MODE && pan_in_progress){
             cancelPan();
         }
         
-        if(render_mode == 2 && crop_in_progress){
+        if(render_mode == REACTIVITY_MODE && crop_in_progress){
             cancelCrop();
         }
     }
     
+    /**
+     * Handles <code>mouseMoved()</code> input from this component's listener.
+     * @param e The mouse event details
+     */
     private void mouseMove(MouseEvent e){
         reportMousePosition(e.getX(), e.getY());
     }
     
+    /**
+     * Called to report the position of the mouse to <code>PARENT</code> so that relevant information can be displayed.
+     * @param mx the mouse x-coordinate in pixels relative to the top-left corner of this component.
+     * @param my the mouse y-coordinate in pixels relative to the top-left corner of this component.
+     */
     private void reportMousePosition(int mx, int my){
         if(secm_image.isDisplayable()){
             double true_x = getTrueX(mx);
@@ -512,16 +565,24 @@ public class Visualizer extends JPanel{
         }
     }
     
+    /**
+     * Handles <code>mousePressed()</code> input from this component's listener.
+     * @param e The mouse event details
+     */
     private void mousePress(MouseEvent e){
-        if(render_mode == 1){
+        if(render_mode == SEM_MODE){
             semMousePress(e);
         }
-        else if(render_mode == 2){
+        else if(render_mode == REACTIVITY_MODE){
             reacMousePress(e);
             updateGraphics();
         }
     }
     
+    /**
+     * Specific code for handling <code>mousePressed()</code> events when in SEM mode.
+     * @param e The mouse event details
+     */
     private void semMousePress(MouseEvent e){
         if(e.getButton() == MouseEvent.BUTTON1){
             if(rotation_in_progress){
@@ -546,6 +607,10 @@ public class Visualizer extends JPanel{
         }
     }
     
+    /**
+     * Specific code for handling <code>mousePressed()</code> events when in reactivity mode.
+     * @param e The mouse event details
+     */
     private void reacMousePress(MouseEvent e){
         if(e.getButton() == MouseEvent.BUTTON1){
             if(reac_tool == CROP){
@@ -591,28 +656,35 @@ public class Visualizer extends JPanel{
         }
     }
     
+    /**
+     * Handles <code>mouseReleased()</code> input from this component's listener.
+     * @param e The mouse event details
+     */
     private void mouseRelease(MouseEvent e){
         if(e.getButton() == MouseEvent.BUTTON1){
-            if(render_mode == 1 && pan_in_progress){
+            if(render_mode == SEM_MODE && pan_in_progress){
                 stopPan();
             }
-            if(render_mode == 2 && crop_in_progress){
+            if(render_mode == REACTIVITY_MODE && crop_in_progress){
                 stopCrop();
             }
-            if(render_mode == 2 && drawing){
+            if(render_mode == REACTIVITY_MODE && drawing){
                 drawing = false;
             }
         }
         else if(e.getButton() == MouseEvent.BUTTON3){
-            if(render_mode == 1 && rotation_in_progress){
+            if(render_mode == SEM_MODE && rotation_in_progress){
                 stopRotation();
             }
-            if(render_mode == 2 && erasing){
+            if(render_mode == REACTIVITY_MODE && erasing){
                 erasing = false;
             }
         }
     }
     
+    /**
+     * Stops the rotation operation, updating the SEM image's rotation to its new value.
+     */
     private void stopRotation(){
         rotation_in_progress = false;
         sem_rotation += extra_rotation;
@@ -624,6 +696,9 @@ public class Visualizer extends JPanel{
         initial_mouse_y = 0;
     }
     
+    /**
+     * Stops the pan operation, updating the SEM image's position offsets to their new values.
+     */
     private void stopPan(){
         pan_in_progress = false;
         sem_xoffs += extra_x_offset;
@@ -634,6 +709,9 @@ public class Visualizer extends JPanel{
         initial_mouse_y = 0;
     }
     
+    /**
+     * Stops the crop operation, updating the cropping extents to their new values.
+     */
     private void stopCrop(){
         crop_in_progress = false;
         double cx1 = getTrueX(tentative_crop_x1);
@@ -648,6 +726,9 @@ public class Visualizer extends JPanel{
         updateGraphics();
     }
     
+    /**
+     * Cancels the rotation operation, reverting the SEM rotation to its previous value.
+     */
     private void cancelRotation(){
         rotation_in_progress = false;
         extra_rotation = 0;
@@ -658,6 +739,9 @@ public class Visualizer extends JPanel{
         updateGraphics();
     }
     
+    /**
+     * Cancels the panning operation, reverting the SEM position offsets to their previous values
+     */
     private void cancelPan(){
         pan_in_progress = false;
         extra_x_offset = 0;
@@ -669,6 +753,9 @@ public class Visualizer extends JPanel{
         updateGraphics();
     }
     
+    /**
+     * Cancels the cropping operation.
+     */
     private void cancelCrop(){
         crop_in_progress = false;
         tentative_crop_x1 = getRenderX(crop_x1);
@@ -678,6 +765,9 @@ public class Visualizer extends JPanel{
         updateGraphics();
     }
     
+    /**
+     * Undoes the cropping operation, reverting the cropping extents to match the extents of the SECM image.
+     */
     private void undoCrop(){
         crop_x1 = secm_image.getXMin()*secm_scale_factor;
         crop_x2 = secm_image.getXMax()*secm_scale_factor;
@@ -687,9 +777,18 @@ public class Visualizer extends JPanel{
         //graphics update is called in cancel crop so we don't need to call it again
     }
     
+    /**
+     * Handles the 'fill' tool, replacing contiguous pixels of <code>toreplace</code> value to the <code>replacewith</code> value
+     * @param xorigin x-coordinate at which the tool was used in pixels relative to this component's top-left corner.
+     * @param yorigin y-coordinate at which the tool was used in pixels relative to this component's top-left corner.
+     * @param toreplace The values to be replaced.
+     * @param replacewith The values to which the switches are to be set.
+     */
     private void fill(int xorigin, int yorigin, int toreplace, int replacewith){
         int xmax = switches.length;
         int ymax = switches[0].length;
+        //create stacks for the coordinates that are to be looked around
+        //there is a real possibility that a great deal of points need to be looked at, so a recursive method was intractible.
         Stack<Integer> x_stack = new Stack<>();
         Stack<Integer> y_stack = new Stack<>();
         x_stack.push(xorigin);
@@ -697,6 +796,7 @@ public class Visualizer extends JPanel{
         while(!x_stack.empty()){
             int x = x_stack.pop();
             int y = y_stack.pop();
+            //look right
             if(x+1 < xmax){
                 if(switches[x+1][y] == toreplace){
                     switches[x+1][y] = replacewith;
@@ -704,6 +804,7 @@ public class Visualizer extends JPanel{
                     y_stack.push(y);
                 }
             }
+            //look left
             if(x > 0){
                 if(switches[x-1][y] == toreplace){
                     switches[x-1][y] = replacewith;
@@ -711,6 +812,7 @@ public class Visualizer extends JPanel{
                     y_stack.push(y);
                 }
             }
+            //look down
             if(y+1 < ymax){
                 if(switches[x][y+1] == toreplace){
                     switches[x][y+1] = replacewith;
@@ -718,6 +820,7 @@ public class Visualizer extends JPanel{
                     y_stack.push(y+1);
                 }
             }
+            //look up
             if(y > 0){
                 if(switches[x][y-1] == toreplace){
                     switches[x][y-1] = replacewith;
@@ -728,6 +831,10 @@ public class Visualizer extends JPanel{
         }
     }
     
+    /**
+     * Override of the paint method for this component
+     * @param g 
+     */
     @Override
     public void paint(Graphics g){
         g.drawImage(base_image, 0, 0, this);
@@ -735,8 +842,8 @@ public class Visualizer extends JPanel{
     
     //<editor-fold defaultstate="collapsed" desc="Setters">
     /**
-     * 
-     * @param rg 
+     * Update wether or not the grid is to be rendered and calls <code>updateGraphics()</code>.
+     * @param rg <code>true</code> to turn the grid on; <code>false</code> to turn it off.
      */
     public void setReactivityGrid(boolean rg){
         reac_grid = rg;
@@ -744,8 +851,8 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param t 
+     * Set the transparency of the grid-section selection and calls <code>updateGraphics()</code>.
+     * @param t the opacity as a value between 0 and 1.
      */
     public void setReactivitySelectionTransparency(float t){
         reac_selection_transparency = t;
@@ -753,8 +860,8 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param t 
+     * Set the transparency of the SEM image when in reactivity mode and calls <code>updateGraphics()</code>.
+     * @param t the opacity as a value between 0 and 1.
      */
     public void setReactivitySEMTransparency(float t){
         reac_sem_transparency = t;
@@ -762,17 +869,22 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param toolid 
+     * Set the tool being used in reactivity mode.
+     * @param toolid There are three options:
+     * <ul>
+     * <li><code>PENCIL</code></li>
+     * <li><code>CROP</code></li>
+     * <li><code>FILL</code></li>
+     * </ul>
      */
     public void setReactivityTool(int toolid){
         reac_tool = toolid;
-        updateGraphics();
+        //updateGraphics();
     }
     
     /**
-     * 
-     * @param xres 
+     * Sets the grid spacing in x and calls <code>updateGraphics()</code>.
+     * @param xres the grid spacing in x in metres
      */
     public void setReactivityXResolution(double xres){
         if(reac_xresolution != xres){
@@ -785,8 +897,8 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param yres 
+     * Sets the grid spacing in y and calls <code>updateGraphics()</code>.
+     * @param yres the grid spacing in y in metres
      */
     public void setReactivityYResolution(double yres){
         if(reac_yresolution != yres){
@@ -799,8 +911,14 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param mode 
+     * Sets the render mode and calls <code>updateGraphics()</code>.
+     * @param mode The rendering mode to use. There are 4 options:
+     * <ul>
+     * <li><code>SECM_MODE</code></li>
+     * <li><code>SEM_MODE</code></li>
+     * <li><code>REACTIVITY_MODE</code></li>
+     * <li><code>SAMPLING_MODE</code></li>
+     * </ul>
      */
     public void setRenderMode(int mode){
         render_mode = mode;
@@ -808,8 +926,8 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param num 
+     * Sets the number of x-coordinates that will be sampled and calls <code>updateGraphics()</code>.
+     * @param num the number of x-coordinates that will be sampled
      */
     public void setSamplingNumberXSteps(int num){
         sam_num_steps_x = num;
@@ -817,8 +935,8 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param num 
+     * Sets the number of y-coordinates that will be sampled and calls <code>updateGraphics()</code>.
+     * @param num the number of y-coordinates that will be sampled
      */
     public void setSamplingNumberYSteps(int num){
         sam_num_steps_y = num;
@@ -1069,11 +1187,16 @@ public class Visualizer extends JPanel{
         return (int)index;
     }
     
-    public void saveData(String filepath, int fileformat, int interpolation) throws IOException{
+    public void saveData(String filepath, double current_scale, int fileformat, int interpolation) throws IOException{
         String data_separator;
         String encoding;
-        String[] broken = filepath.split(".");
-        String extension = broken[broken.length - 1];
+        String extension;
+        if(filepath.length() > 4){
+            extension = filepath.substring(filepath.length() - 3);
+        }
+        else{
+            extension = "";
+        }
         switch (fileformat) {
             case FILETYPE_CSV:
                 data_separator = ",";
@@ -1100,10 +1223,10 @@ public class Visualizer extends JPanel{
         try (PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(f)))) {
             pw.println("##ENCODING: " + encoding);
             pw.println("##X-Sampling: StartIndex,StepSize,NumberOfSteps");
-            pw.println(String.format("%d,%d,%d", sam_start_x, sam_step_size_x, sam_num_steps_x));
+            pw.println(String.format("#%d,%d,%d", sam_start_x, sam_step_size_x, sam_num_steps_x));
             pw.println("##Y-Sampling: StartIndex,StepSize,NumberOfSteps");
-            pw.println(String.format("%d,%d,%d", sam_start_y, sam_step_size_y, sam_num_steps_y));
-            pw.print(String.format("##xindex%syindex%sswitch%sxcoord%sycoord%scurrent", data_separator, data_separator, data_separator, data_separator, data_separator));
+            pw.println(String.format("#%d,%d,%d", sam_start_y, sam_step_size_y, sam_num_steps_y));
+            pw.print(String.format("##xindex%syindex%sswitch%sxcoord/m%sycoord/m%scurrent/A", data_separator, data_separator, data_separator, data_separator, data_separator));
             
             for(int xindex = 0; xindex < switches.length; xindex ++){
                 double x1 = secm_image.getXMin()*secm_scale_factor + reac_xresolution*(double)xindex;
@@ -1111,13 +1234,15 @@ public class Visualizer extends JPanel{
                 double x2 = secm_image.getXMin()*secm_scale_factor + reac_xresolution*((double)xindex + 1.0);
                 x2 = Math.min(x2, secm_image.getXMax());
                 double x_coord = 0.5*(x1 + x2);
+                double x_secm_coord = x_coord/secm_scale_factor;
                 for(int yindex = 0; yindex < switches[0].length; yindex ++){
                     double y1 = secm_image.getYMin()*secm_scale_factor + reac_yresolution*(double)yindex;
                     y1 = Math.max(y1, secm_image.getYMin());
                     double y2 = secm_image.getYMin()*secm_scale_factor + reac_yresolution*((double)yindex + 1.0);
                     y2 = Math.min(y2, secm_image.getYMax());
                     double y_coord = 0.5*(y1 + y2);
-                    double current = secm_image.getCurrent(x_coord, y_coord, interpolation);
+                    double y_secm_coord = y_coord/secm_scale_factor;
+                    double current = secm_image.getCurrent(x_secm_coord, y_secm_coord, interpolation)*current_scale;
                     pw.print(String.format("\n%d%s%d%s%d%s%.6E%s%.6E%s%.6E",
                             xindex, data_separator, yindex, data_separator, switches[xindex][yindex], data_separator,
                             x_coord, data_separator, y_coord, data_separator, current));
@@ -1181,4 +1306,8 @@ public class Visualizer extends JPanel{
     public static final int FILETYPE_NOT_SPECIFIED = 0;
     public static final int FILETYPE_CSV = 1;
     public static final int FILETYPE_TSV = 2;
+    public static final int SECM_MODE = 0;
+    public static final int SEM_MODE = 1;
+    public static final int REACTIVITY_MODE = 2;
+    public static final int SAMPLING_MODE = 3;
 }

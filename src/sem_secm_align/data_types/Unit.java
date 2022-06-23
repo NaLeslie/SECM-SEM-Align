@@ -53,6 +53,13 @@ public class Unit {
         return unit_factor;
     }
     
+    /**
+     * The name of the unit
+     */
     private String unit_label;
+    
+    /**
+     * The scaling factor of the unit (preferably relative to the base SI unit)
+     */
     private double unit_factor;
 }

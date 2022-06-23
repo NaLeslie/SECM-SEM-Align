@@ -1,6 +1,6 @@
 /*
  * Created: 2022-01-14
- * Updated: 2022-06-17
+ * Updated: 2022-06-22
  * Nathaniel Leslie
  */
 package sem_secm_align;
@@ -12,7 +12,6 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import javax.swing.JButton;
@@ -945,7 +944,7 @@ public class MainWindow extends JFrame{
                 else if(selected.equals(fftsv)){
                     filetype = Visualizer.FILETYPE_TSV;
                 }
-                view_screen.saveData(flpth, filetype, SECMImage.INTERPOLATION_BICUBIC);
+                view_screen.saveData(flpth, secm_current_scale_factor, filetype, SECMImage.INTERPOLATION_BILINEAR);
             }
         }
         catch(Exception e){

@@ -613,45 +613,61 @@ public class Visualizer extends JPanel{
      */
     private void reacMousePress(MouseEvent e){
         if(e.getButton() == MouseEvent.BUTTON1){
-            if(reac_tool == CROP){
-                crop_in_progress = true;
-                tentative_crop_x1 = e.getX();
-                tentative_crop_x2 = e.getX();
-                tentative_crop_y1 = e.getY();
-                tentative_crop_y2 = e.getY();
-            }
-            else if(reac_tool == PENCIL){
-                drawing = true;
-                int mx = e.getX();
-                int my = e.getY();
-                switches[getIndexX(mx)][getIndexY(my)] = 1;
-            }
-            else if(reac_tool == FILL){
-                int mx = e.getX();
-                int my = e.getY();
-                int ix = getIndexX(mx);
-                int iy = getIndexY(my);
-                switches[ix][iy] = 1;
-                fill(ix, iy, 0, 1);
+            switch (reac_tool) {
+                case CROP:
+                    crop_in_progress = true;
+                    tentative_crop_x1 = e.getX();
+                    tentative_crop_x2 = e.getX();
+                    tentative_crop_y1 = e.getY();
+                    tentative_crop_y2 = e.getY();
+                    break;
+                case PENCIL:
+                    {
+                        drawing = true;
+                        int mx = e.getX();
+                        int my = e.getY();
+                        switches[getIndexX(mx)][getIndexY(my)] = 1;
+                        break;
+                    }
+                case FILL:
+                    {
+                        int mx = e.getX();
+                        int my = e.getY();
+                        int ix = getIndexX(mx);
+                        int iy = getIndexY(my);
+                        switches[ix][iy] = 1;
+                        fill(ix, iy, 0, 1);
+                        break;
+                    }
+                default:
+                    break;
             }
         }
         else if(e.getButton() == MouseEvent.BUTTON3){
-            if(reac_tool == CROP){
-                undoCrop();
-            }
-            else if(reac_tool == PENCIL){
-                erasing = true;
-                int mx = e.getX();
-                int my = e.getY();
-                switches[getIndexX(mx)][getIndexY(my)] = 0;
-            }
-            else if(reac_tool == FILL){
-                int mx = e.getX();
-                int my = e.getY();
-                int ix = getIndexX(mx);
-                int iy = getIndexY(my);
-                switches[ix][iy] = 0;
-                fill(ix, iy, 1, 0);
+            switch (reac_tool) {
+                case CROP:
+                    undoCrop();
+                    break;
+                case PENCIL:
+                    {
+                        erasing = true;
+                        int mx = e.getX();
+                        int my = e.getY();
+                        switches[getIndexX(mx)][getIndexY(my)] = 0;
+                        break;
+                    }
+                case FILL:
+                    {
+                        int mx = e.getX();
+                        int my = e.getY();
+                        int ix = getIndexX(mx);
+                        int iy = getIndexY(my);
+                        switches[ix][iy] = 0;
+                        fill(ix, iy, 1, 0);
+                        break;
+                    }
+                default:
+                    break;
             }
         }
     }
@@ -943,9 +959,10 @@ public class Visualizer extends JPanel{
         updateGraphics();
     }
     
-    /**\
-     * 
-     * @param start 
+    /**
+     * Sets the grid x-index at which sampling starts and calls <code>updateGraphics()</code>. 
+     * Index 0 is the leftmost index.
+     * @param start The starting x-index
      */
     public void setSamplingStartingX(int start){
         sam_start_x = start;
@@ -953,8 +970,9 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param start 
+     * Sets the grid y-index at which sampling starts and calls <code>updateGraphics()</code>. 
+     * Index 0 is the uppermost index.
+     * @param start The starting y-index
      */
     public void setSamplingStartingY(int start){
         sam_start_y = start;
@@ -962,8 +980,9 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param step 
+     * Sets the interval between sampled grid-sections in the x-direction and calls <code>updateGraphics()</code>.
+     * @param step The step-size in the x-direction.
+     * If <code>step</code> is set to 4, every 4<sup>th</sup> grid point in the x-direction will be sampled.
      */
     public void setSamplingStepSizeX(int step){
         sam_step_size_x = step;
@@ -971,8 +990,9 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param step 
+     * Sets the interval between sampled grid-sections in the y-direction and calls <code>updateGraphics()</code>.
+     * @param step The step-size in the y-direction.
+     * If <code>step</code> is set to 4, every 4<sup>th</sup> grid point in the y-direction will be sampled.
      */
     public void setSamplingStepSizeY(int step){
         sam_step_size_y = step;
@@ -980,8 +1000,10 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param secm 
+     * Sets the SECM image to be visualized.
+     * The cropped boundaries are set to show the entire SECM image.
+     * <strong>This operation erases the reactivity switches</strong> and calls <code>updateGraphics()</code>.
+     * @param secm the SECM image.
      */
     public void setSECMImage(SECMImage secm){
         secm_image = secm;
@@ -996,8 +1018,9 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param scale_factor 
+     * Sets the scale of the SECM image, that is, the factor that when multiplied by the position data in the SECM image file gives the position in metres.
+     * @param scale_factor the scaling factor for the position data of the SECM image.
+     * <strong>For example:</strong> If the SECM image's position data is saved in microns (um) scale_factor should be <code>1E-6</code>.
      */
     public void setSECMScale(double scale_factor){
         secm_scale_factor = scale_factor;
@@ -1005,8 +1028,8 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param sem 
+     * Sets the SEM image to be visualized and calls <code>updateGraphics()</code>.
+     * @param sem the SEM image.
      */
     public void setSEMImage(SEMImage sem){
         sem_image = sem;
@@ -1014,8 +1037,8 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param mirror 
+     * Sets whether or not the SEM image should be mirrored in the x-direction.
+     * @param mirror image will be mirrored in the x-direction if and only if this is <code>true</code>.
      */
     public void setSEMMirrorX(boolean mirror){
         sem_mirrorx = mirror;
@@ -1023,8 +1046,8 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param mirror 
+     * Sets whether or not the SEM image should be mirrored in the y-direction.
+     * @param mirror image will be mirrored in the y-direction if and only if this is <code>true</code>.
      */
     public void setSEMMirrorY(boolean mirror){
         sem_mirrory = mirror;
@@ -1032,8 +1055,8 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param rot 
+     * Sets the clockwise (CW) rotation of the SEM image.
+     * @param rot the CW rotation in degrees.
      */
     public void setSEMRotation(double rot){
         sem_rotation = rot;
@@ -1041,8 +1064,8 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param scale 
+     * Sets the scale of the SEM image in pixels/metre.
+     * @param scale the scale of the SEM image in pixels/metre.
      */
     public void setSEMScale(double scale){
         sem_scale = scale;
@@ -1050,8 +1073,8 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param t 
+     * Sets the transparency of the SEM image when this component is in SEM mode.
+     * @param t the transparency where <code>0</code> is invisible and <code>1</code> is opaque.
      */
     public void setSEMTransparency(float t){
         sem_transparency = t;
@@ -1059,8 +1082,9 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param offs 
+     * Sets the offset of the sem image in the x-direction.
+     * @param offs the x-offset of the SEM image in metres. 
+     * Positive values for rightward displacement and negative values for leftward displacement.
      */
     public void setSEMXOffs(double offs){
         sem_xoffs = offs;
@@ -1068,8 +1092,9 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * 
-     * @param offs 
+     * Sets the offset of the sem image in the y-direction.
+     * @param offs the y-offset of the SEM image in metres. 
+     * Positive values for downward displacement and negative values for upward displacement.
      */
     public void setSEMYOffs(double offs){
         sem_yoffs = offs;
@@ -1077,6 +1102,15 @@ public class Visualizer extends JPanel{
     }
     //</editor-fold>
     
+    /**
+     * Computes the bearing of the mouse relative to the centre of this component in degrees.
+     * @param mx the mouse x-coordinate in pixels. 
+     * <code>0</code> corresponds to the left of this component.
+     * @param my the mouse y-coordinate in pixels.
+     * <code>0</code> corresponds to the top of this component.
+     * @return the bearing in degrees following <code>Math.atan2(my - centre_y, mx - centre_x)</code>.
+     * If <code>mx</code> and <code>my</code> are at the centre of this component, then <code>0</code> will be returned.
+     */
     private double getPhi(int mx, int my){
         double center_x = (double)this.getWidth()*0.5;
         double center_y = (double)this.getHeight()*0.5;
@@ -1091,6 +1125,12 @@ public class Visualizer extends JPanel{
         return Math.toDegrees(Math.atan2(y, x));
     }
     
+    /**
+     * Converts the on-screen pixel coordinate to the x-coordinate in metres corresponding to the SECM image's coordinate system.
+     * @param mx the on-screen pixel x-coordinate.
+     * <code>0</code> corresponds to the left of this component.
+     * @return the x-coordinate in the SECM image's coordinate space in metres
+     */
     private double getTrueX(int mx){
         int width = this.getWidth();
         int height = this.getHeight();
@@ -1112,6 +1152,12 @@ public class Visualizer extends JPanel{
         return xcoord*secm_scale_factor;
     }
     
+    /**
+     * Converts the on-screen pixel coordinate to the y-coordinate in metres corresponding to the SECM image's coordinate system.
+     * @param my the on-screen pixel y-coordinate.
+     * <code>0</code> corresponds to the top of this component.
+     * @return the y-coordinate in the SECM image's coordinate space in metres
+     */
     private double getTrueY(int my){
         int width = this.getWidth();
         int height = this.getHeight();
@@ -1133,6 +1179,11 @@ public class Visualizer extends JPanel{
         return ycoord*secm_scale_factor;
     }
     
+    /**
+     * Converts an x-coordinate from the SECM image's coordinate system to the on-screen x-coordinate.
+     * @param tx the x-coordinate in metres.
+     * @return the on-screen x-coordinate in pixels where <code>0</code> corresponds to the left of this component.
+     */
     private int getRenderX(double tx){
         int width = this.getWidth();
         int height = this.getHeight();
@@ -1154,6 +1205,11 @@ public class Visualizer extends JPanel{
         return xcoord;
     }
     
+    /**
+     * Converts a y-coordinate from the SECM image's coordinate system to the on-screen y-coordinate.
+     * @param ty the x-coordinate in metres.
+     * @return the on-screen y-coordinate in pixels where <code>0</code> corresponds to the top of this component.
+     */
     private int getRenderY(double ty){
         int width = this.getWidth();
         int height = this.getHeight();
@@ -1175,18 +1231,49 @@ public class Visualizer extends JPanel{
         return ycoord;
     }
     
+    /**
+     * Computes the x-index of the reactivity grid that corresponds to a given on-screen coordinate.
+     * @param mx the on-screen pixel x-coordinate.
+     * <code>0</code> corresponds to the left of this component.
+     * @return the x-index of the reactivity grid where <code>0</code> corresponds to the leftmost index.
+     */
     private int getIndexX(int mx){
         double tx = getTrueX(mx);
         double index = Math.floor((tx - secm_image.getXMin()*secm_scale_factor) / reac_xresolution);
         return (int)index;
     }
     
+    /**
+     * Computes the y-index of the reactivity grid that corresponds to a given on-screen coordinate.
+     * @param my the on-screen pixel y-coordinate.
+     * <code>0</code> corresponds to the left of this component.
+     * @return the y-index of the reactivity grid where <code>0</code> corresponds to the uppermost index.
+     */
     private int getIndexY(int my){
         double ty = getTrueY(my);
         double index = Math.floor((ty - secm_image.getYMin()*secm_scale_factor) / reac_yresolution);
         return (int)index;
     }
     
+    /**
+     * Exports the reactivity and current data in a format that can be read by a separate program to fit kinetic parameters to SECM images.
+     * @param filepath The path to the file to be saved. If this file does not include its relevant file name extension, then one will be added.
+     * @param current_scale The scaling factor for converting from the SECM image's current units to A.
+     * <code>(current_in_amps) = (secm_current)*current_scale</code>
+     * @param fileformat the intended file format. There are three options:
+     * <ul>
+     * <li><code>FILETYPE_CSV</code>: Comma separated values (csv)</li>
+     * <li><code>FILETYPE_TSV</code>: Tab separated values (tsv)</li>
+     * <li><code>FILETYPE_NOT_SPECIFIED</code>: Will save using the default encoding (currently csv)</li>
+     * </ul>
+     * @param interpolation the interpolation method to be used. The following options are available:
+     * <ul>
+     * <li><code>SECMImage.INTERPOLATION_NN</code>: Nearest-neighbor interpolation. (Constant function)</li>
+     * <li><code>SECMImage.INTERPOLATION_BILINEAR</code>: Bilinear interpolation. (Linear function)</li>
+     * <li><code>SECMImage.INTERPOLATION_BICUBIC</code>: Bicubic interpolation. (Cubic function).</li>
+     * </ul>
+     * @throws IOException 
+     */
     public void saveData(String filepath, double current_scale, int fileformat, int interpolation) throws IOException{
         String data_separator;
         String encoding;
@@ -1226,7 +1313,8 @@ public class Visualizer extends JPanel{
             pw.println(String.format("#%d,%d,%d", sam_start_x, sam_step_size_x, sam_num_steps_x));
             pw.println("##Y-Sampling: StartIndex,StepSize,NumberOfSteps");
             pw.println(String.format("#%d,%d,%d", sam_start_y, sam_step_size_y, sam_num_steps_y));
-            pw.print(String.format("##xindex%syindex%sswitch%sxcoord/m%sycoord/m%scurrent/A", data_separator, data_separator, data_separator, data_separator, data_separator));
+            pw.print(String.format("##xindex%syindex%sswitch%sxcoord/m%sycoord/m%scurrent/A", 
+                    data_separator, data_separator, data_separator, data_separator, data_separator));
             
             for(int xindex = 0; xindex < switches.length; xindex ++){
                 double x1 = secm_image.getXMin()*secm_scale_factor + reac_xresolution*(double)xindex;
@@ -1252,62 +1340,249 @@ public class Visualizer extends JPanel{
     }
     
     //Fields
+    /**
+     * The image that is rendered in the visualizer in <code>paint()</code>.
+     */
     private Image base_image;
+    /**
+     * Determines if the reactivity grid should be rendered.
+     * The grid will be rendered if and only if this value is <code>true</code>.
+     */
     private boolean reac_grid;
+    /**
+     * Determines the opacity of the active and inactive pixels in the reactivity screen.
+     * <code>0</code> means that the selection will be invisible and <code>1</code> means the selection will be opaque.
+     */
     private float reac_selection_transparency;
+    /**
+     * Determines the opacity of the SEM image in the reactivity screen.
+     * <code>0</code> means that the image will be invisible and <code>1</code> means the image will be opaque.
+     */
     private float reac_sem_transparency;
+    /**
+     * Determines the current tool used by the reactivity screen.
+     * This should have the value of one of the following:
+     * <ul>
+     * <li><code>PENCIL</code></li>
+     * <li><code>CROP</code></li>
+     * <li><code>FILL</code></li>
+     * </ul>
+     */
     private int reac_tool;
+    /**
+     * The size of a gridsection in the x-direction in metres
+     */
     private double reac_xresolution;
+    /**
+     * The size of a gridsection in the y-direction in metres
+     */
     private double reac_yresolution;
+    /**
+     * The type of information to be displayed.
+     * This should have the value of one of the following:
+     * <ul>
+     * <li><code>SECM_MODE</code></li>
+     * <li><code>SEM_MODE</code></li>
+     * <li><code>REACTIVITY_MODE</code></li>
+     * <li><code>SAMPLING_MODE</code></li>
+     * </ul>
+     */
     private int render_mode;
+    /**
+     * Holds the number of x-coordinates that will be sampled
+     */
     private int sam_num_steps_x;
+    /**
+     * Holds the number of y-coordinates that will be sampled
+     */
     private int sam_num_steps_y;
+    /**
+     * Holds the first x-index to be sampled
+     */
     private int sam_start_x;
+    /**
+     * Holds the first y-index to be sampled
+     */
     private int sam_start_y;
+    /**
+     * Holds the sampling interval in the x-direction.
+     */
     private int sam_step_size_x;
+    /**
+     * Holds the sampling interval in the y-direction.
+     */
     private int sam_step_size_y;
+    /**
+     * Holds the SECM image data
+     */
     private SECMImage secm_image;
+    /**
+     * Holds the scaling factor that when multiplied with a position in the SECM image converts the position to metres.
+     * That is, this value can be seen as being in units of [metres per [SECM unit]].
+     */
     private double secm_scale_factor;
+    /**
+     * Holds the SEM image data
+     */
     private SEMImage sem_image;
+    /**
+     * Will be <code>true</code> if the SEM image is to be mirrored in the x-direction.
+     */
     private boolean sem_mirrorx;
+    /**
+     * Will be <code>true</code> if the SEM image is to be mirrored in the y-direction.
+     */
     private boolean sem_mirrory;
+    /**
+     * Holds the clockwise rotation in degrees that is applied to the SEM image.
+     */
     private double sem_rotation;
+    /**
+     * Holds the scale of the SEM image in [pixels per metre].
+     */
     private double sem_scale;
+    /**
+     * Holds the transparency of the SEM image 
+     */
     private float sem_transparency;
+    /**
+     * Holds the x-displacement to be applied to the SEM image in metres
+     */
     private double sem_xoffs;
+    /**
+     * Holds the y-displacement to be applied to the SEM image in metres
+     */
     private double sem_yoffs;
+    /**
+     * Will be <code>true</code> if and only if the SEM image is being actively translated by the user.
+     */
     private boolean pan_in_progress;
+    /**
+     * Will be <code>true</code> if and only if the SEM image is being actively rotated by the user.
+     */
     private boolean rotation_in_progress;
+    /**
+     * The x-offset being added to the SEM image by the current translation operation in metres.
+     */
     private double extra_x_offset;
+    /**
+     * The y-offset being added to the SEM image by the current translation operation in metres.
+     */
     private double extra_y_offset;
+    /**
+     * The extra rotation being applied to the SEM image by the current rotation operation in degrees.
+     */
     private double extra_rotation;
+    /**
+     * The mouse x-coordinate at the start of the translation operation.
+     * In pixels relative to the left of this component.
+     */
     private int initial_mouse_x;
+    /**
+     * The mouse y-coordinate at the start of the translation operation.
+     * In pixels relative to the top of this component.
+     */
     private int initial_mouse_y;
+    /**
+     * The initial bearing of the mouse relative to the centre of this component at the start of the rotation operation.
+     */
     private double initial_mouse_phi;
+    /**
+     * The scale of the image of the visualizer in pixels per metre
+     */
     private double working_scale;
+    /**
+     * The lower x-bound of the cropped area in metres.
+     */
     private double crop_x1;
+    /**
+     * The upper x-bound of the cropped area in metres.
+     */
     private double crop_x2;
+    /**
+     * The lower y-bound of the cropped area in metres.
+     */
     private double crop_y1;
+    /**
+     * The upper y-bound of the cropped area in metres.
+     */
     private double crop_y2;
+    /**
+     * Will be <code>true</code> if and only if the tentative crop bounds are being actively changed by the user.
+     */
     private boolean crop_in_progress;
+    /**
+     * The lower x-bound of the tentative crop bounds in the screen's coordinate system.
+     */
     private int tentative_crop_x1;
+    /**
+     * The lower y-bound of the tentative crop bounds in the screen's coordinate system.
+     */
     private int tentative_crop_y1;
+    /**
+     * The upper x-bound of the tentative crop bounds in the screen's coordinate system.
+     */
     private int tentative_crop_x2;
+    /**
+     * The upper y-bound of the tentative crop bounds in the screen's coordinate system.
+     */
     private int tentative_crop_y2;
+    /**
+     * Holds the state of the reactivity at each grid-section in the reactivity and sampling screens
+     */
     private int[][] switches;
+    /**
+     * Will be <code>true</code> if and only if the user is currently activating pixels using the pencil tool in the reactivity screen.
+     */
     private boolean drawing;
+    /**
+     * Will be <code>true</code> if and only if the user is currently deactivating pixels using the pencil tool in the reactivity screen.
+     */
     private boolean erasing;
     
     //constants
+    /**
+     * The handle for the parent component so that this component can send data to its parent
+     */
     private final MainWindow PARENT;
+    /**
+     * The identifier for the reactivity screen's pencil tool.
+     */
     public static final int PENCIL = 0;
+    /**
+     * The identifier for the reactivity screen's crop tool.
+     */
     public static final int CROP = 1;
+    /**
+     * The identifier for the reactivity screen's fill tool.
+     */
     public static final int FILL = 2;
+    /**
+     * The identifier for an unspecified file type for exporting data
+     */
     public static final int FILETYPE_NOT_SPECIFIED = 0;
+    /**
+     * The identifier for the comma separated values file type for exporting data
+     */
     public static final int FILETYPE_CSV = 1;
+    /**
+     * The identifier for the tab separated values file type for exporting data
+     */
     public static final int FILETYPE_TSV = 2;
+    /**
+     * The render more for rendering the SECM screen
+     */
     public static final int SECM_MODE = 0;
+    /**
+     * The render more for rendering the SEM screen
+     */
     public static final int SEM_MODE = 1;
+    /**
+     * The render more for rendering the reactivity screen
+     */
     public static final int REACTIVITY_MODE = 2;
+    /**
+     * The render more for rendering the sampling screen
+     */
     public static final int SAMPLING_MODE = 3;
 }

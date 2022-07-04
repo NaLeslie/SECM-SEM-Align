@@ -17,7 +17,7 @@ import sem_secm_align.utility.SingularMatrixException;
 
 /**
  *
- * @authorNathaniel
+ * @author Nathaniel
  */
 public class SECMImage {
     

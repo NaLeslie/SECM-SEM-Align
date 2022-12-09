@@ -28,6 +28,7 @@ import javax.swing.JPanel;
 import sem_secm_align.data_types.SEMImage;
 import sem_secm_align.settings.ColourSettings;
 import sem_secm_align.settings.Settings;
+import static sem_secm_align.utility.ImageParser.bufferedImageToGrayscale;
 
 /**
  * Handles rendering of the visualizing panel
@@ -1253,6 +1254,77 @@ public class Visualizer extends JPanel{
         double ty = getTrueY(my);
         double index = Math.floor((ty - secm_image.getYMin()*secm_scale_factor) / reac_yresolution);
         return (int)index;
+    }
+    
+    /**
+     * Evaluates the SECM current at each point on the reactivity grid
+     * @return 
+     */
+    public double[][] getSECMCurrents(){
+        return new double[][]{};
+    }
+    
+    /**
+     * Evaluates the SEM signal at each point on the reactivity grid
+     * @return 
+     */
+    public double[][] getSEMSignals(){
+        BufferedImage sem = drawSEM(1.0f);
+        
+        int width = this.getWidth();
+        int height = this.getHeight();
+        
+        double[][] grayscale = bufferedImageToGrayscale(sem);
+        
+        int switch_width = switches.length;
+        int switch_height = switches[0].length;
+        
+        double[][] sums = new double[switch_width][switch_height];
+        double[][] samples = new double[switch_width][switch_height];
+        
+        double secm_width = secm_image.getXMax() - secm_image.getXMin();
+        double secm_height = secm_image.getYMax() - secm_image.getYMin();
+        
+        int image_width, image_height;
+        working_scale = (double)width/secm_width/secm_scale_factor; //pixels per metre
+        
+        if(secm_width/width < secm_height/height){
+            image_width = (int)(secm_width/secm_height*(double)height);
+            image_height = height;
+            working_scale = (double)height/secm_height/secm_scale_factor;
+        }
+        else{
+            image_width = width;
+            image_height = (int)(secm_height/secm_width*(double)width);
+        }
+        
+        int x0 = (width - image_width)/2;
+        int y0 = (height - image_height)/2;
+        
+        //add up the image pixels in each bin.
+        for(int x = 0; x <= image_width; x++){
+            double xcoord = (double)x / (double)image_width * secm_width;
+            int reac_grid_x = (int)Math.floor((xcoord*secm_scale_factor) / reac_xresolution);
+            for(int y = 0; y <= image_height; y++){
+                double ycoord = (double)y / (double)image_height * secm_height;
+                int reac_grid_y = (int)Math.floor((ycoord*secm_scale_factor) / reac_yresolution);
+                sums[reac_grid_x][reac_grid_y] += grayscale[x + x0][y + y0];
+                samples[reac_grid_x][reac_grid_y] ++;
+            }
+        }
+        
+        //average the pixels
+        for(int x = 0; x < switch_width; x++){
+            for(int y = 0; y < switch_height; y++){
+                sums[x][y] /= samples[x][y];
+            }
+        }
+        
+        return sums;
+    }
+    
+    public void setSwitches(int[][] new_switches){
+        switches = new_switches;
     }
     
     /**

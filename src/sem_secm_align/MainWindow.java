@@ -44,11 +44,12 @@ public class MainWindow extends JFrame{
      */
     @SuppressWarnings("OverridableMethodCallInConstructor")
     public MainWindow(){
+        
         SETTINGS = new Settings();
         view_screen = new Visualizer(this, SETTINGS);
         control_panel = new JTabbedPane();
         position_indicator = new JLabel("");
-
+        
         //initialize internal settings
         secm_current_scale_factor   =   SETTINGS.UNITS_CURRENT[SETTINGS.DEFAULT_CURRENT_UNIT_SELECTION].getFactor();
         secm_distance_unit          =   SETTINGS.UNITS_DISTANCE[SETTINGS.DEFAULT_DISTANCE_UNIT_SELECTION];

@@ -18,6 +18,9 @@ public class Main {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
+        
+        Tests.testSobel();
+        
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | UnsupportedLookAndFeelException ex) {

@@ -428,6 +428,13 @@ public class MainWindow extends JFrame{
         reactivity_tab.add(reac_gtgroup, c);
         
         c.gridy=2;
+        reac_detect_edges = new JButton("Detect edges");
+        reac_detect_edges.addActionListener((ActionEvent e) -> {
+            reacDetectEdgesPressed();
+        });
+        reactivity_tab.add(reac_detect_edges,c);
+        
+        c.gridy=3;
         reac_tool_select = new JLabel("Active tool: pencil");
         reactivity_tab.add(reac_tool_select,c);
         
@@ -461,12 +468,12 @@ public class MainWindow extends JFrame{
         reac_toolbar.add(new JLabel(), c);
         c.weightx=0;
         c.gridx = 0;
-        c.gridy = 3;
+        c.gridy = 4;
         reactivity_tab.add(reac_toolbar,c);
         c.gridx = 1;
         c.weightx=1;
         reactivity_tab.add(new JLabel(),c);
-        c.gridy = 4;
+        c.gridy = 5;
         c.weighty=1;
         reactivity_tab.add(new JLabel(),c);
         control_panel.addTab("Reactivity Selection", reactivity_tab);// </editor-fold>
@@ -1047,6 +1054,15 @@ public class MainWindow extends JFrame{
     }
     
     /**
+     * Triggered when <code>reac_detect_edges</code> is pressed.
+     * Spawns an instance of the <code>EdgeDetectionWindow</code>
+     */
+    private void reacDetectEdgesPressed(){
+        EdgeDetectionWindow edw = new EdgeDetectionWindow(view_screen);
+        edw.setVisible(true);
+    }
+    
+    /**
      * Triggered when <code>reac_pencil</code> is pressed.
      * Sends the new tool information to the <code>view_screen</code> and updates the <code>reac_tool_select</code> label.
      * <code>reac_pencil</code> is disabled and the other tool buttons are enabled.
@@ -1543,6 +1559,7 @@ public class MainWindow extends JFrame{
     JCheckBox reac_grid;
     JSlider reac_semtransparency;
     JSlider reac_seltransparency;
+    JButton reac_detect_edges;
     //Sampling
     JTextField sam_xstart;
     JTextField sam_ystart;

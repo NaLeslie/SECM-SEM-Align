@@ -12,6 +12,9 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import static sem_secm_align.Tests.export_2d_double;
+import sem_secm_align.data_types.ImproperFileFormattingException;
 import sem_secm_align.utility.filters.Filter;
 import sem_secm_align.utility.filters.Gauss3;
 import sem_secm_align.utility.filters.Gauss5;
@@ -69,7 +72,8 @@ public class EdgeDetectionWindow extends JFrame{
         }
         
         c.gridx = 2;
-        filter_options = new JComboBox(new String[]{"Test"});
+        
+        filter_options = new JComboBox(filter_names);
         filter_options.setSelectedIndex(0);
         this.add(filter_options, c);
         
@@ -84,11 +88,11 @@ public class EdgeDetectionWindow extends JFrame{
         
         c.gridx = 2;
         
-        cancel_option = new JButton("Close");
-        cancel_option.addActionListener((ActionEvent e) -> {
-            cancelDetection();
+        close_option = new JButton("Close");
+        close_option.addActionListener((ActionEvent e) -> {
+            closelDetection();
         });
-        this.add(cancel_option, c);
+        this.add(close_option, c);
         
         this.pack();
         this.setVisible(true);
@@ -99,15 +103,36 @@ public class EdgeDetectionWindow extends JFrame{
         int image_choice = image_sources.getSelectedIndex();
         double[][] data_grid;
         switch (image_choice) {
-            case 0 -> data_grid = parent.getSECMCurrents();
-            case 1 -> data_grid = parent.getSEMSignals();
-            default -> {
+            case 0 : 
+                if(parent.getSECMDisplayable()){
+                    data_grid = parent.getSECMCurrents();
+                    break;
+                }
+                else{
+                    JOptionPane.showMessageDialog(this, "No SECM image is currently loaded.", "No SECM image", JOptionPane.ERROR_MESSAGE);
                     return 0;
-            }
+                }
+            case 1 : 
+                if(parent.getSEMDisplayable()){
+                    try {
+                        data_grid = parent.getSEMSignals();
+                    } catch (ImproperFileFormattingException ex) {
+                        ex.printStackTrace();
+                        return 0;
+                    }
+                    break;
+                }
+                else{
+                    JOptionPane.showMessageDialog(this, "No SEM image is currently loaded.", "No SEM image", JOptionPane.ERROR_MESSAGE);
+                    return 0;
+                }
+            default :
+                return 0;
         }
-        
+        export_2d_double(data_grid, "prefilter.csv");
         // apply noise filtering
         data_grid = available_filters[filter_options.getSelectedIndex()].applyFilter(data_grid);
+        export_2d_double(data_grid, "postfilter.csv");
         
         // apply sobel operators
         SobelX sx = new SobelX();
@@ -127,78 +152,108 @@ public class EdgeDetectionWindow extends JFrame{
         // find maximum slopes
         for(int x = 0; x < xgradients.length; x++){
             for(int y = 0; y < xgradients[0].length; y++){
-                if(angles[x][y] <= Math.PI * 0.125 && angles[x][y] > Math.PI * -0.125){//0
-                    if(angles[x + 1][y] <= Math.PI * 0.125 && angles[x + 1][y] > Math.PI * -0.125 && squares[x + 1][y] > squares[x][y]){
-                        edges[x][y] = 0;
+                if((angles[x][y] <= Math.PI * 0.125 && angles[x][y] > Math.PI * -0.125) || (angles[x][y] > Math.PI * 0.775 || angles[x][y] <= -Math.PI * 0.775)){//0 or +-pi
+                    if(x < angles.length - 1){
+                        if(squares[x + 1][y] >= squares[x][y]){
+                            edges[x][y] = 0;
+                        }
                     }
-                    if(angles[x - 1][y] <= Math.PI * 0.125 && angles[x - 1][y] > Math.PI * -0.125 && squares[x - 1][y] > squares[x][y]){
-                        edges[x][y] = 0;
-                    }
-                }
-                else if(angles[x][y] <= Math.PI * 0.375 && angles[x][y] > Math.PI * 0.125){//pi/4
-                    if(angles[x + 1][y + 1] <= Math.PI * 0.125 && angles[x + 1][y + 1] > Math.PI * -0.125 && squares[x + 1][y + 1] > squares[x][y]){
-                        edges[x][y] = 0;
-                    }
-                    if(angles[x - 1][y - 1] <= Math.PI * 0.125 && angles[x - 1][y - 1] > Math.PI * -0.125 && squares[x - 1][y - 1] > squares[x][y]){
-                        edges[x][y] = 0;
+                    if(x > 0){
+                        if(squares[x - 1][y] >= squares[x][y]){
+                            edges[x][y] = 0;
+                        }
                     }
                 }
-                else if(angles[x][y] <= Math.PI * 0.625 && angles[x][y] > Math.PI * 0.375){//pi/2
-                    if(angles[x][y + 1] <= Math.PI * 0.125 && angles[x][y + 1] > Math.PI * -0.125 && squares[x][y + 1] > squares[x][y]){
-                        edges[x][y] = 0;
+                else if((angles[x][y] <= Math.PI * 0.375 && angles[x][y] > Math.PI * 0.125) || (angles[x][y] > -Math.PI * 0.775 && angles[x][y] <= -Math.PI * 0.625)){//pi/4 or -3pi/4
+                    if(x < angles.length - 1 && y < angles[0].length - 1){
+                        if(squares[x + 1][y + 1] >= squares[x][y]){
+                            edges[x][y] = 0;
+                        }
                     }
-                    if(angles[x][y - 1] <= Math.PI * 0.125 && angles[x][y - 1] > Math.PI * -0.125 && squares[x][y - 1] > squares[x][y]){
-                        edges[x][y] = 0;
-                    }
-                }
-                else if(angles[x][y] <= Math.PI * 0.775 && angles[x][y] > Math.PI * 0.625){//3pi/4
-                    if(angles[x - 1][y + 1] <= Math.PI * 0.125 && angles[x - 1][y + 1] > Math.PI * -0.125 && squares[x - 1][y + 1] > squares[x][y]){
-                        edges[x][y] = 0;
-                    }
-                    if(angles[x + 1][y - 1] <= Math.PI * 0.125 && angles[x + 1][y - 1] > Math.PI * -0.125 && squares[x + 1][y - 1] > squares[x][y]){
-                        edges[x][y] = 0;
+                    if(x > 0 && y > 0){
+                        if(squares[x - 1][y - 1] >= squares[x][y]){
+                            edges[x][y] = 0;
+                        }
                     }
                 }
-                else if(angles[x][y] > Math.PI * 0.775 || angles[x][y] <= -Math.PI * 0.775){//+-pi
-                    if(angles[x + 1][y] <= Math.PI * 0.125 && angles[x + 1][y] > Math.PI * -0.125 && squares[x + 1][y] > squares[x][y]){
-                        edges[x][y] = 0;
+                else if((angles[x][y] <= Math.PI * 0.625 && angles[x][y] > Math.PI * 0.375) || (angles[x][y] > -Math.PI * 0.625 && angles[x][y] <= -Math.PI * 0.375)){//pi/2 or -pi/2
+                    if(y < angles[0].length - 1){
+                        if(squares[x][y + 1] >= squares[x][y]){
+                            edges[x][y] = 0;
+                        }
                     }
-                    if(angles[x - 1][y] <= Math.PI * 0.125 && angles[x - 1][y] > Math.PI * -0.125 && squares[x - 1][y] > squares[x][y]){
-                        edges[x][y] = 0;
-                    }
-                }
-                else if(angles[x][y] < -Math.PI * 0.375 && angles[x][y] >= -Math.PI * 0.125){//-pi/4
-                    if(angles[x - 1][y + 1] <= Math.PI * 0.125 && angles[x - 1][y + 1] > Math.PI * -0.125 && squares[x - 1][y + 1] > squares[x][y]){
-                        edges[x][y] = 0;
-                    }
-                    if(angles[x + 1][y - 1] <= Math.PI * 0.125 && angles[x + 1][y - 1] > Math.PI * -0.125 && squares[x + 1][y - 1] > squares[x][y]){
-                        edges[x][y] = 0;
+                    if(y > 0){
+                        if(squares[x][y - 1] >= squares[x][y]){
+                            edges[x][y] = 0;
+                        }
                     }
                 }
-                else if(angles[x][y] < -Math.PI * 0.625 && angles[x][y] >= -Math.PI * 0.375){//-pi/2
-                    if(angles[x][y + 1] <= Math.PI * 0.125 && angles[x][y + 1] > Math.PI * -0.125 && squares[x][y + 1] > squares[x][y]){
-                        edges[x][y] = 0;
+                else if((angles[x][y] <= Math.PI * 0.775 && angles[x][y] > Math.PI * 0.625) || (angles[x][y] > -Math.PI * 0.375 && angles[x][y] <= -Math.PI * 0.125)){//3pi/4 or -pi/4
+                    if(x > 0 && y < angles[0].length - 1){
+                        if(squares[x - 1][y + 1] >= squares[x][y]){
+                            edges[x][y] = 0;
+                        }
                     }
-                    if(angles[x][y - 1] <= Math.PI * 0.125 && angles[x][y - 1] > Math.PI * -0.125 && squares[x][y - 1] > squares[x][y]){
-                        edges[x][y] = 0;
-                    }
-                }
-                else if(angles[x][y] < -Math.PI * 0.775 && angles[x][y] >= -Math.PI * 0.625){//-3pi/4
-                    if(angles[x + 1][y + 1] <= Math.PI * 0.125 && angles[x + 1][y + 1] > Math.PI * -0.125 && squares[x + 1][y + 1] > squares[x][y]){
-                        edges[x][y] = 0;
-                    }
-                    if(angles[x - 1][y - 1] <= Math.PI * 0.125 && angles[x - 1][y - 1] > Math.PI * -0.125 && squares[x - 1][y - 1] > squares[x][y]){
-                        edges[x][y] = 0;
+                    if(x < angles.length - 1 && y > 0){
+                        if(squares[x + 1][y - 1] >= squares[x][y]){
+                            edges[x][y] = 0;
+                        }
                     }
                 }
             }
         }
+        double[][] edge_magnitudes = new double[edges.length][edges[0].length];
+        double min = Math.sqrt(squares[0][0]);
+        double max = 0.0;
+        int total_edge_pixels = 0;
+        for(int x = 0; x < edges.length; x++){
+            for(int y = 0; y < edges[0].length; y++){
+                total_edge_pixels += edges[x][y];
+                if(edges[x][y] > 0){
+                    edge_magnitudes[x][y] = Math.sqrt(squares[x][y]);
+                    if(edge_magnitudes[x][y] > max){
+                        max = edge_magnitudes[x][y];
+                    }
+                    if(edge_magnitudes[x][y] < min){
+                        min = edge_magnitudes[x][y];
+                    }
+                }
+                else{
+                    edge_magnitudes[x][y] = 0.0;
+                }
+            }
+        }
+        export_2d_double(edge_magnitudes, "edgemags.csv");
+        int numbins = 20;
+        double binwidth = (max - min) / ((double)numbins);
+        int[] histogram = new int[numbins];
+        for(int x = 0; x < edges.length; x++){
+            for(int y = 0; y < edges[0].length; y++){
+                total_edge_pixels += edges[x][y];
+                if(edges[x][y] > 0){
+                    if(edge_magnitudes[x][y] < max){
+                        int index = (int)((edge_magnitudes[x][y] - min) / binwidth);
+                        histogram[index] ++;
+                    }
+                    else{
+                        histogram[numbins - 1] ++;
+                    }
+                }
+            }
+        }
+        double[] mags = new double[numbins];
+        for(int i = 0; i < numbins; i++){
+            mags[i] = binwidth * ((double)i) + min;
+            System.out.println(mags[i] + "," + histogram[i]);
+        }
+        
+        
         // export edges
         parent.setSwitches(edges);
         return 1;
     }
     
-    public void cancelDetection(){
+    public void closelDetection(){
         this.dispose();
     }
     
@@ -206,7 +261,7 @@ public class EdgeDetectionWindow extends JFrame{
     private JComboBox image_sources;
     private JComboBox filter_options;
     private JButton apply_option;
-    private JButton cancel_option;
+    private JButton close_option;
     private final Filter[] available_filters = new Filter[]{new Gauss3(), new Gauss5(), new Gauss7(), new Median3()};
     
     /**

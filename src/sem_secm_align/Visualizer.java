@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Stack;
 import javax.swing.JPanel;
+import sem_secm_align.data_types.ImproperFileFormattingException;
 import sem_secm_align.data_types.SEMImage;
 import sem_secm_align.settings.ColourSettings;
 import sem_secm_align.settings.Settings;
@@ -107,6 +108,13 @@ public class Visualizer extends JPanel{
         tentative_crop_x2 = 1;
         tentative_crop_y1 = 0;
         tentative_crop_y2 = 1;
+        //sampling
+        sam_num_steps_x             =        settings.DEFAULT_SAM_NUM_XSTEPS;
+        sam_num_steps_y             =        settings.DEFAULT_SAM_NUM_YSTEPS;
+        sam_start_x                 =        settings.DEFAULT_SAM_XSTART_INDEX;
+        sam_start_y                 =        settings.DEFAULT_SAM_YSTART_INDEX;
+        sam_step_size_x             =        settings.DEFAULT_SAM_XSTEP;
+        sam_step_size_y             =        settings.DEFAULT_SAM_YSTEP;
         switches = new int[1][1];
     }
     
@@ -496,12 +504,16 @@ public class Visualizer extends JPanel{
         else if(drawing && !erasing){
             int mx = e.getX();
             int my = e.getY();
-            switches[getIndexX(mx)][getIndexY(my)] = 1;
+            if(getIndexX(mx) < switches.length && getIndexX(mx) >= 0 && getIndexY(my) < switches[0].length && getIndexY(my) >= 0){
+                switches[getIndexX(mx)][getIndexY(my)] = 1;
+            }
         }
         else if(erasing){
             int mx = e.getX();
             int my = e.getY();
-            switches[getIndexX(mx)][getIndexY(my)] = 0;
+            if(getIndexX(mx) < switches.length && getIndexX(mx) >= 0 && getIndexY(my) < switches[0].length && getIndexY(my) >= 0){
+                switches[getIndexX(mx)][getIndexY(my)] = 0;
+            }
         }
     }
     
@@ -1258,17 +1270,52 @@ public class Visualizer extends JPanel{
     
     /**
      * Evaluates the SECM current at each point on the reactivity grid
-     * @return 
+     * @return SECM currents at each section of the reactivity grid using bilinear interpolation. The currents are at the same scale used in the original SECM image file.
      */
     public double[][] getSECMCurrents(){
-        return new double[][]{};
+        double[][] secmcurrents = new double[switches.length][switches[0].length];
+        for(int xindex = 0; xindex < switches.length; xindex ++){
+            double x1 = secm_image.getXMin()*secm_scale_factor + reac_xresolution*(double)xindex;
+            x1 = Math.max(x1, secm_image.getXMin());
+            double x2 = secm_image.getXMin()*secm_scale_factor + reac_xresolution*((double)xindex + 1.0);
+            x2 = Math.min(x2, secm_image.getXMax());
+            double x_coord = 0.5*(x1 + x2);
+            double x_secm_coord = x_coord/secm_scale_factor;
+            for(int yindex = 0; yindex < switches[0].length; yindex ++){
+                double y1 = secm_image.getYMin()*secm_scale_factor + reac_yresolution*(double)yindex;
+                y1 = Math.max(y1, secm_image.getYMin());
+                double y2 = secm_image.getYMin()*secm_scale_factor + reac_yresolution*((double)yindex + 1.0);
+                y2 = Math.min(y2, secm_image.getYMax());
+                double y_coord = 0.5*(y1 + y2);
+                double y_secm_coord = y_coord/secm_scale_factor;
+                double current = secm_image.getCurrent(x_secm_coord, y_secm_coord, SECMImage.INTERPOLATION_BILINEAR);
+                secmcurrents[xindex][yindex] = current;
+            }
+        }
+        return secmcurrents;
+    }
+    
+    /**
+     * Returns true is the visualizer has a valid SECM image loaded
+     * @return true if the SECMImage is displayable, false otherwise
+     */
+    public boolean getSECMDisplayable(){
+        return secm_image.isDisplayable();
+    }
+    
+    /**
+     * Returns true is the visualizer has a valid SEM image loaded
+     * @return true if the SEMImage is displayable, false otherwise
+     */
+    public boolean getSEMDisplayable(){
+        return sem_image.isDisplayable();
     }
     
     /**
      * Evaluates the SEM signal at each point on the reactivity grid
      * @return 
      */
-    public double[][] getSEMSignals(){
+    public double[][] getSEMSignals() throws ImproperFileFormattingException{
         BufferedImage sem = drawSEM(1.0f);
         
         int width = this.getWidth();
@@ -1302,14 +1349,27 @@ public class Visualizer extends JPanel{
         int y0 = (height - image_height)/2;
         
         //add up the image pixels in each bin.
-        for(int x = 0; x <= image_width; x++){
+        for(int x = 0; x < image_width; x++){
             double xcoord = (double)x / (double)image_width * secm_width;
             int reac_grid_x = (int)Math.floor((xcoord*secm_scale_factor) / reac_xresolution);
-            for(int y = 0; y <= image_height; y++){
+            for(int y = 0; y < image_height; y++){
                 double ycoord = (double)y / (double)image_height * secm_height;
                 int reac_grid_y = (int)Math.floor((ycoord*secm_scale_factor) / reac_yresolution);
+                try{
                 sums[reac_grid_x][reac_grid_y] += grayscale[x + x0][y + y0];
                 samples[reac_grid_x][reac_grid_y] ++;
+                }
+                catch(Exception e){
+                    int gx = x + x0;
+                    int gy = y + y0;
+                    System.out.println("x: " + x + " max: " + image_width);
+                    System.out.println("y: " + y + " max: " + image_height);
+                    System.out.println("sumsx: " + reac_grid_x + " max: " + switch_width);
+                    System.out.println("sumsy: " + reac_grid_y + " max: " + switch_height);
+                    System.out.println("grayx: " + gx + " max: " + grayscale.length);
+                    System.out.println("grayy: " + gy + " max: " + grayscale[0].length);
+                    return sums;
+                }
             }
         }
         
@@ -1325,6 +1385,7 @@ public class Visualizer extends JPanel{
     
     public void setSwitches(int[][] new_switches){
         switches = new_switches;
+        updateGraphics();
     }
     
     /**

@@ -5,8 +5,11 @@
  */
 package sem_secm_align.utility;
 
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
+import java.awt.image.DataBufferInt;
+import sem_secm_align.data_types.ImproperFileFormattingException;
 
 /**
  *
@@ -14,7 +17,26 @@ import java.awt.image.DataBufferByte;
  */
 public class ImageParser {
     
-    public static double[][] bufferedImageToGrayscale(BufferedImage image){
+    public static double[][] bufferedImageToGrayscale(BufferedImage image) throws ImproperFileFormattingException{
+        
+        int width = image.getWidth();
+        int height = image.getHeight();
+        
+        double[][] imagedata = new double[width][height];
+        
+        for(int y = 0; y < height; y++){
+            for(int x = 0; x < width; x++){
+                Color c = new Color(image.getRGB(x, y));
+                imagedata[x][y] += c.getBlue() + c.getGreen() + c.getRed();
+                imagedata[x][y] /= 3;
+            }
+        }
+        
+        return imagedata;
+        
+    }
+    
+    private static double[][] byteBufferedImageToGrayscale(BufferedImage image){
         int width = image.getWidth();
         int height = image.getHeight();
         
@@ -50,4 +72,21 @@ public class ImageParser {
         return imagedata;
     }
     
+    private static double[][] intBufferedImageToGrayscale(BufferedImage image){
+        //I have not had good experiences using the same method as seen in byteBufferedImageToGrayscale
+        int width = image.getWidth();
+        int height = image.getHeight();
+        
+        double[][] imagedata = new double[width][height];
+        
+        for(int y = 0; y < height; y++){
+            for(int x = 0; x < width; x++){
+                Color c = new Color(image.getRGB(x, y));
+                imagedata[x][y] += c.getBlue() + c.getGreen() + c.getRed();
+                imagedata[x][y] /= 3;
+            }
+        }
+        
+        return imagedata;
+    }
 }

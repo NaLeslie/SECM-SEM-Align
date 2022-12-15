@@ -5,6 +5,7 @@
  */
 package sem_secm_align;
 
+import sem_secm_align.edge_detection.EdgeDetectionWindow;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;

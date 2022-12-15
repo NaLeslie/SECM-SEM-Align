@@ -103,16 +103,29 @@ public class Tests {
     
     public static void export_2d_double(double[][] data, String filename){
         try {
-                PrintWriter pw = new PrintWriter(new File(filename));
-                pw.println("x,y,data");
-                for(int x = 0; x < data.length; x++){
-                    for(int y = 0; y < data[0].length; y++){
-                        pw.print("\n" + x + "," + y + "," + data[x][y]);
-                    }
+            PrintWriter pw = new PrintWriter(new File(filename));
+            pw.print("#x,y,data");
+            for(int x = 0; x < data.length; x++){
+                for(int y = 0; y < data[0].length; y++){
+                    pw.print("\n" + x + "," + y + "," + data[x][y]);
                 }
-                pw.close();
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+            pw.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public static void export_histogram(double[] x, int[] y, String filename){
+        try {
+            PrintWriter pw = new PrintWriter(new File(filename));
+            pw.print("#x,count");
+            for(int i = 0; i < x.length; i++){
+                pw.print("\n" + x[i] + "," + y[i]);
+            }
+            pw.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

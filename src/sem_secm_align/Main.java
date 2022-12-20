@@ -24,7 +24,7 @@ public class Main {
 //        catch(Exception e){
 //            
 //        }
-        
+
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | UnsupportedLookAndFeelException ex) {

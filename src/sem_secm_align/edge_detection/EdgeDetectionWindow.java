@@ -1,6 +1,6 @@
 /*
  * Created: 2022-12-01
- * Updated: 2022-12-06
+ * Updated: 2022-12-19
  * Nathaniel Leslie
  */
 package sem_secm_align.edge_detection;
@@ -267,10 +267,12 @@ public class EdgeDetectionWindow extends JFrame{
     private void updateUnfilteredData(){
         // get the data for edge detection
         int image_choice = image_sources.getSelectedIndex();
+        double w = parent.getReactivityGridResolutionX();
+        double h = parent.getReactivityGridResolutionY();
         switch (image_choice) {
             case 0 : 
                 if(parent.getSECMDisplayable()){
-                    edge_display.setUnfilteredData(parent.getSECMCurrents());
+                    edge_display.setUnfilteredData(parent.getSECMCurrents(), w, h);
                 }
                 else{
                     JOptionPane.showMessageDialog(this, "No SECM image is currently loaded.", "No SECM image", JOptionPane.ERROR_MESSAGE);
@@ -279,7 +281,7 @@ public class EdgeDetectionWindow extends JFrame{
             case 1 : 
                 if(parent.getSEMDisplayable()){
                     try {
-                        edge_display.setUnfilteredData(parent.getSEMSignals());
+                        edge_display.setUnfilteredData(parent.getSEMSignals(), w, h);
                     } catch (ImproperFileFormattingException ex) {
                         ex.printStackTrace();
                     }

@@ -1,6 +1,6 @@
 /*
  * Created: 2022-04-12
- * Updated: 2022-06-23
+ * Updated: 2022-12-16
  * Nathaniel Leslie
  */
 package sem_secm_align.settings;
@@ -22,7 +22,7 @@ public class ColourSettings {
      * </ul>
      * @return The scaled colour or <code>BACKGROUND_COLOUR</code> if an invalid mode is selected.
      */
-    public static Color colorScale(double input, int mode){
+    public static Color colourScale(double input, int mode){
         if(mode == CSCALE_GREY){
             int v = (int)(255.0*input);
             return new Color(v,v,v);
@@ -58,7 +58,7 @@ public class ColourSettings {
     public static final Color SELECTION_COLOUR = new Color(255,255,0);
     
     /**
-     * The greyscale <code>colorScale()</code> mode. <code>0</code> is black and <code>1</code> is white.
+     * The greyscale <code>colourScale()</code> mode. <code>0</code> is black and <code>1</code> is white.
      */
     public static final int CSCALE_GREY = 0;
 }

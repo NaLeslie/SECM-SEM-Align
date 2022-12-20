@@ -210,7 +210,7 @@ public class Visualizer extends JPanel{
             for(int y = 0; y <= image_height; y++){
                 double ycoord = (double)y / (double)image_height * secm_height + secm_image.getYMin();
                 double current = secm_image.getScaledCurrent(xcoord, ycoord, SECMImage.INTERPOLATION_NN);
-                secm_graphics.setColor(ColourSettings.colorScale(current, ColourSettings.CSCALE_GREY));
+                secm_graphics.setColor(ColourSettings.colourScale(current, ColourSettings.CSCALE_GREY));
                 secm_graphics.fillRect(x + x0, y + y0, 1, 1);
             }
         }
@@ -328,7 +328,7 @@ public class Visualizer extends JPanel{
             for(int y = 0; y <= image_height; y++){
                 double ycoord = (double)y / (double)image_height * crop_height + crop_y1/secm_scale_factor;
                 double current = secm_image.getScaledCurrent(xcoord, ycoord, SECMImage.INTERPOLATION_NN);
-                reac_graphics.setColor(ColourSettings.colorScale(current, ColourSettings.CSCALE_GREY));
+                reac_graphics.setColor(ColourSettings.colourScale(current, ColourSettings.CSCALE_GREY));
                 reac_graphics.fillRect(x + x0, y + y0, 1, 1);
             }
         }
@@ -1266,6 +1266,22 @@ public class Visualizer extends JPanel{
         double ty = getTrueY(my);
         double index = Math.floor((ty - secm_image.getYMin()*secm_scale_factor) / reac_yresolution);
         return (int)index;
+    }
+    
+    /**
+     * returns the distance between points in the reactivity grid in meters along the x-direction
+     * @return 
+     */
+    public double getReactivityGridResolutionX(){
+        return reac_xresolution;
+    }
+    
+    /**
+     * returns the distance between points in the reactivity grid in meters along the y-direction
+     * @return 
+     */
+    public double getReactivityGridResolutionY(){
+        return reac_yresolution;
     }
     
     /**

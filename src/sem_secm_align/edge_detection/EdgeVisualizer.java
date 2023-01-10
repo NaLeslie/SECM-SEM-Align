@@ -1,6 +1,6 @@
 /*
  * Created: 2022-12-15
- * Updated: 2022-12-19
+ * Updated: 2023-01-10
  * Nathaniel Leslie
  */
 package sem_secm_align.edge_detection;
@@ -60,9 +60,10 @@ public class EdgeVisualizer extends JPanel{
     
     public void setDisplayMode(int display_mode){
         this.display_mode = display_mode;
+        updateGraphics();
     }
     
-    public void updateGraphics(){
+    private void updateGraphics(){
         switch(display_mode){
             case DISPLAY_MODE_PRE_FILTER:
                 drawPreFilter();
@@ -135,10 +136,7 @@ public class EdgeVisualizer extends JPanel{
         }
         
         //Determine the maximum value for the colour scale
-        double logmax = Math.floor(Math.log10(max));
-        double rounding = Math.pow(10, logmax - 1.0);
-        double roundmax = (int)(max / rounding) + 1.0;
-        double plotmax = roundmax*rounding;
+        double plotmax = roundedMax(max);
         
         //determine plot size and position
         int available_width = width - PADDING_E - PADDING_W - LEGEND_WIDTH;
@@ -205,20 +203,30 @@ public class EdgeVisualizer extends JPanel{
     public void setFilter(Filter f){
         filter = f;
         updateFilteredData();
+        if(display_mode != DISPLAY_MODE_PRE_FILTER){
+            updateGraphics();
+        }
     }
     
     public void setLowerThreshold(double l_threshold){
         lower_threshold = l_threshold;
+        if(display_mode == DISPLAY_MODE_THRESHOLDED_EDGES){
+            updateGraphics();
+        }
     }
     
     public void setUnfilteredData(double[][] udata, double pixel_width, double pixel_height){
         pixel_width_over_height = pixel_width/pixel_height;
         unfiltered_data = udata;
         updateFilteredData();
+        updateGraphics();
     }
     
     public void setUpperThreshold(double u_threshold){
         upper_threshold = u_threshold;
+        if(display_mode == DISPLAY_MODE_THRESHOLDED_EDGES){
+            updateGraphics();
+        }
     }
     
     private int updateFilteredData(){
@@ -296,7 +304,6 @@ public class EdgeVisualizer extends JPanel{
             }
         }
         unthresholded_edges = new double[edges.length][edges[0].length];
-        double min = Math.sqrt(squares[0][0]);
         double max = 0.0;
         for(int x = 0; x < edges.length; x++){
             for(int y = 0; y < edges[0].length; y++){
@@ -305,23 +312,23 @@ public class EdgeVisualizer extends JPanel{
                     if(unthresholded_edges[x][y] > max){
                         max = unthresholded_edges[x][y];
                     }
-                    if(unthresholded_edges[x][y] < min){
-                        min = unthresholded_edges[x][y];
-                    }
                 }
                 else{
                     unthresholded_edges[x][y] = 0.0;
                 }
             }
         }
+        double unrounded_max = max;
+        //Round the maximum value
+        max = roundedMax(max);
         int numbins = 20;
-        double binwidth = (max - min) / ((double)numbins);
+        double binwidth = (max) / ((double)numbins);
         int[] histogram_counts = new int[numbins];
         for(int x = 0; x < edges.length; x++){
             for(int y = 0; y < edges[0].length; y++){
                 if(edges[x][y] > 0){
                     if(unthresholded_edges[x][y] < max){
-                        int index = (int)((unthresholded_edges[x][y] - min) / binwidth);
+                        int index = (int)((unthresholded_edges[x][y]) / binwidth);
                         histogram_counts[index] ++;
                     }
                     else{
@@ -332,13 +339,19 @@ public class EdgeVisualizer extends JPanel{
         }
         double[] histogram_mags = new double[numbins];
         for(int i = 0; i < numbins; i++){
-            histogram_mags[i] = binwidth * ((double)i) + min;
+            histogram_mags[i] = binwidth * ((double)i);
         }
-        parent.setHistogramData(histogram_mags, histogram_counts);
+        parent.setHistogramData(histogram_mags, histogram_counts, 0, unrounded_max);
         return 0;
     }
     
-    
+    private static double roundedMax(double true_max){
+        //Determine the maximum value for the colour scale
+        double logmax = Math.floor(Math.log10(true_max));
+        double rounding = Math.pow(10, logmax - 1.0);
+        double roundmax = (int)(true_max / rounding) + 1.0;
+        return roundmax*rounding;
+    }
     
     private Image display_image;
     private int display_mode;

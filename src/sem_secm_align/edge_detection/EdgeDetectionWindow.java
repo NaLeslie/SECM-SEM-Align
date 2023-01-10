@@ -1,6 +1,6 @@
 /*
  * Created: 2022-12-01
- * Updated: 2022-12-19
+ * Updated: 2023-01-10
  * Nathaniel Leslie
  */
 package sem_secm_align.edge_detection;
@@ -8,11 +8,17 @@ package sem_secm_align.edge_detection;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
 import sem_secm_align.Tests;
 import sem_secm_align.Visualizer;
 import static sem_secm_align.Tests.export_2d_double;
@@ -39,6 +45,9 @@ public class EdgeDetectionWindow extends JFrame{
         this.setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
         
+        JPanel control_panel = new JPanel();
+        control_panel.setLayout(new GridBagLayout());
+        
         c.anchor = GridBagConstraints.NORTHWEST;
         c.fill = GridBagConstraints.BOTH;
         c.ipadx=DEFAULT_PAD;
@@ -48,13 +57,13 @@ public class EdgeDetectionWindow extends JFrame{
         c.gridx = 0;
         c.gridy = 0;
         
-        this.add(new JLabel("Image:"), c);
+        control_panel.add(new JLabel("Image:"), c);
         
         c.gridx = 1;
         c.weightx = 0;
         c.ipadx=SPACER_PAD;
         
-        this.add(new JLabel(""), c);
+        control_panel.add(new JLabel(""), c);
         
         c.gridx = 2;
         c.weightx = 1;
@@ -62,12 +71,15 @@ public class EdgeDetectionWindow extends JFrame{
         
         image_sources = new JComboBox(new String[]{"SECM", "SEM"});
         image_sources.setSelectedIndex(0);
-        this.add(image_sources,c);
+        image_sources.addActionListener((ActionEvent e) -> {
+            imageSourceChange();
+        });
+        control_panel.add(image_sources,c);
         
         c.gridx = 0;
         c.gridy = 1;
         
-        this.add(new JLabel("Noise Filter:"), c);
+        control_panel.add(new JLabel("Noise Filter:"), c);
         
         String[] filter_names = new String[available_filters.length];
         for(int i = 0; i < filter_names.length; i++){
@@ -78,16 +90,76 @@ public class EdgeDetectionWindow extends JFrame{
         
         filter_options = new JComboBox(filter_names);
         filter_options.setSelectedIndex(0);
-        this.add(filter_options, c);
+        filter_options.addActionListener((ActionEvent e) -> {
+            filterChange();
+        });
+        control_panel.add(filter_options, c);
         
         c.gridx = 0;
         c.gridy = 2;
+        
+        control_panel.add(new JLabel("Threshold Minimum"), c);
+        
+        c.gridx = 2;
+        
+        threshold_min = new JTextField("min");
+        threshold_min.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                thresholdMinChange();
+            }
+        });
+        threshold_min.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent evt) {
+                thresholdMinFocusLost();
+            }
+        });
+        control_panel.add(threshold_min, c);
+        
+        c.gridx = 0;
+        c.gridy = 3;
+        
+        control_panel.add(new JLabel("Threshold Maximum"), c);
+        
+        c.gridx = 2;
+        
+        threshold_max = new JTextField("max");
+        threshold_max.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                thresholdMaxChange();
+            }
+        });
+        threshold_max.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent evt) {
+                thresholdMaxFocusLost();
+            }
+        });
+        control_panel.add(threshold_max, c);
+        
+        c.gridx = 0;
+        c.gridy = 4;
+        
+        control_panel.add(new JLabel("View"), c);
+        
+        c.gridx = 2;
+        display_options = new JComboBox(new String[]{"Signals (pre-filtering)", "Signals (post-filtering)", "Edges (pre-thresholding)", "Edges (post-thresholding)"});
+        display_options.setSelectedIndex(0);
+        display_options.addActionListener((ActionEvent e) -> {
+            displayChange();
+        });
+        control_panel.add(display_options, c);
+        
+        c.gridx = 0;
+        c.gridy = 5;
         
         apply_option = new JButton("Apply");
         apply_option.addActionListener((ActionEvent e) -> {
             applyDetection();
         });
-        this.add(apply_option, c);
+        control_panel.add(apply_option, c);
         
         c.gridx = 2;
         
@@ -95,13 +167,63 @@ public class EdgeDetectionWindow extends JFrame{
         close_option.addActionListener((ActionEvent e) -> {
             closeDetection();
         });
-        this.add(close_option, c);
+        control_panel.add(close_option, c);
+        
+        c.gridy = 6;
+        c.weighty = 1;
+        
+        control_panel.add(new JLabel(""), c);
+        
+        c.anchor = GridBagConstraints.NORTHWEST;
+        c.fill = GridBagConstraints.BOTH;
+        c.ipadx = DEFAULT_PAD;
+        c.ipady = DEFAULT_PAD;
+        c.weightx = 1;
+        c.weighty = 1;
+        c.gridx = 0;
+        c.gridy = 0;
+        
+        
+        
+        JPanel display_panel = new JPanel();
+        display_panel.setLayout(new GridBagLayout());
+        
+        edge_display = new EdgeVisualizer(this);
+        display_panel.add(edge_display, c);
+        
+        c.gridy = 1;
+        c.weighty = 0.5;
+        
+        edge_histogram = new EdgeHistogram();
+        display_panel.add(edge_histogram, c);
+        
+        c.anchor = GridBagConstraints.NORTHWEST;
+        c.fill = GridBagConstraints.BOTH;
+        c.ipadx = DEFAULT_PAD;
+        c.ipady = DEFAULT_PAD;
+        c.weightx = 0;
+        c.weighty = 1;
+        c.gridx = 0;
+        c.gridy = 0;
+        
+        this.add(control_panel, c);
+        
+        c.gridx = 1;
+        c.weightx = 1;
+        
+        this.add(display_panel, c);
         
         this.pack();
         this.setVisible(true);
     }
     
-    public int applyDetection(){
+    public void setHistogramData(double[] magnitudes, int[] counts, double minimum, double maximum){
+        edge_histogram.setHistogramData(magnitudes, counts);
+        max = maximum;
+        min = minimum;
+    }
+    
+    private int applyDetection(){
         // get the data for edge detection
         int image_choice = image_sources.getSelectedIndex();
         double[][] data_grid;
@@ -256,44 +378,158 @@ public class EdgeDetectionWindow extends JFrame{
         return 1;
     }
     
-    public void closeDetection(){
+    private void closeDetection(){
         this.dispose();
     }
     
-    public void setHistogramData(double[] magnitudes, int[] counts){
-        edge_histogram.setHistogramData(magnitudes, counts);
-    }
-    
-    private void updateUnfilteredData(){
-        // get the data for edge detection
-        int image_choice = image_sources.getSelectedIndex();
-        double w = parent.getReactivityGridResolutionX();
-        double h = parent.getReactivityGridResolutionY();
-        switch (image_choice) {
-            case 0 : 
-                if(parent.getSECMDisplayable()){
-                    edge_display.setUnfilteredData(parent.getSECMCurrents(), w, h);
-                }
-                else{
-                    JOptionPane.showMessageDialog(this, "No SECM image is currently loaded.", "No SECM image", JOptionPane.ERROR_MESSAGE);
-                }
-                break;
-            case 1 : 
-                if(parent.getSEMDisplayable()){
-                    try {
-                        edge_display.setUnfilteredData(parent.getSEMSignals(), w, h);
-                    } catch (ImproperFileFormattingException ex) {
-                        ex.printStackTrace();
-                    }
-                }
-                else{
-                    JOptionPane.showMessageDialog(this, "No SEM image is currently loaded.", "No SEM image", JOptionPane.ERROR_MESSAGE);
-                }
-                break;
-            default :
-                break;
+    private void displayChange(){
+        int di = display_options.getSelectedIndex();
+        if(di >=0 && di < 4 && di != last_display){
+            edge_display.setDisplayMode(di);
+            last_display = di;
         }
     }
+    
+    private void filterChange(){
+        int selected_filter = filter_options.getSelectedIndex();
+        if(selected_filter != last_filter){
+            last_filter = selected_filter;
+            edge_display.setFilter(available_filters[selected_filter]);
+        }
+    }
+    
+    private void imageSourceChange(){
+        int image_choice = image_sources.getSelectedIndex();
+        if(image_choice != last_image_source){
+            last_image_source = image_choice;
+            double w = parent.getReactivityGridResolutionX();
+            double h = parent.getReactivityGridResolutionY();
+            switch (image_choice) {
+                case 0 : 
+                    if(parent.getSECMDisplayable()){
+                        edge_display.setUnfilteredData(parent.getSECMCurrents(), w, h);
+                    }
+                    else{
+                        JOptionPane.showMessageDialog(this, "No SECM image is currently loaded.", "No SECM image", JOptionPane.ERROR_MESSAGE);
+                    }
+                    break;
+                case 1 : 
+                    if(parent.getSEMDisplayable()){
+                        try {
+                            edge_display.setUnfilteredData(parent.getSEMSignals(), w, h);
+                        } catch (ImproperFileFormattingException ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                    else{
+                        JOptionPane.showMessageDialog(this, "No SEM image is currently loaded.", "No SEM image", JOptionPane.ERROR_MESSAGE);
+                    }
+                    break;
+                default :
+                    break;
+            }
+        }
+    }
+    
+    private void thresholdMaxChange(){
+        try{
+            String text = threshold_max.getText();
+            if(text.equalsIgnoreCase("max")){
+                threshold_max_accepted = max;
+            }
+            else{
+                double newmax = Double.parseDouble(text);
+                if(newmax < 0.0){
+                    throw new NumberFormatException("max cannot be negative.");
+                }
+                threshold_max_accepted = newmax;
+            }
+            edge_display.setUpperThreshold(threshold_max_accepted);
+        }
+        catch(Exception ex){
+            
+        }
+    }
+    
+    private void thresholdMaxFocusLost(){
+        try{
+            String text = threshold_max.getText();
+            if(text.equalsIgnoreCase("max")){
+                threshold_max_accepted = max;
+            }
+            else{
+                double newmax = Double.parseDouble(text);
+                if(newmax < 0.0){
+                    throw new NumberFormatException("max cannot be negative.");
+                }
+                threshold_max_accepted = newmax;
+            }
+            edge_display.setUpperThreshold(threshold_max_accepted);
+            if(threshold_max_accepted >= max){
+                threshold_max.setText("Max");
+            }
+            else{
+                threshold_max.setText(threshold_max_accepted + "");
+            }
+        }
+        catch(Exception ex){
+            
+        }
+    }
+    
+    private void thresholdMinChange(){
+        try{
+            String text = threshold_min.getText();
+            if(text.equalsIgnoreCase("min")){
+                threshold_min_accepted = min;
+            }
+            else{
+                double newmin = Double.parseDouble(text);
+                if(newmin < 0.0){
+                    throw new NumberFormatException("min cannot be negative.");
+                }
+                threshold_min_accepted = newmin;
+            }
+            edge_display.setLowerThreshold(threshold_min_accepted);
+        }
+        catch(Exception ex){
+            
+        }
+    }
+    
+    private void thresholdMinFocusLost(){
+        try{
+            String text = threshold_min.getText();
+            if(text.equalsIgnoreCase("min")){
+                threshold_min_accepted = min;
+            }
+            else{
+                double newmin = Double.parseDouble(text);
+                if(newmin < 0.0){
+                    throw new NumberFormatException("min cannot be negative.");
+                }
+                threshold_min_accepted = newmin;
+            }
+            edge_display.setLowerThreshold(threshold_min_accepted);
+            if(threshold_min_accepted >= min){
+                threshold_min.setText("Min");
+            }
+            else{
+                threshold_min.setText(threshold_min_accepted + "");
+            }
+        }
+        catch(Exception ex){
+            
+        }
+    }
+    
+    private double threshold_max_accepted;
+    private double threshold_min_accepted;
+    private int last_display;
+    private int last_filter;
+    private int last_image_source;
+    private double max;
+    private double min;
     
     private Visualizer parent;
     private EdgeVisualizer edge_display;
@@ -302,6 +538,12 @@ public class EdgeDetectionWindow extends JFrame{
     private JComboBox filter_options;
     private JButton apply_option;
     private JButton close_option;
+    private JTextField threshold_max;
+    private JTextField threshold_min;
+    private JComboBox display_options;
+    
+    
+    
     private final Filter[] available_filters = new Filter[]{new Identity(), new Gauss3(), new Gauss5(), new Gauss7(), new Median3()};
     
     /**

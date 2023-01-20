@@ -19,32 +19,33 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import sem_secm_align.Tests;
 import sem_secm_align.Visualizer;
-import static sem_secm_align.Tests.export_2d_double;
 import sem_secm_align.data_types.ImproperFileFormattingException;
-import sem_secm_align.utility.filters.Filter;
-import sem_secm_align.utility.filters.Gauss3;
-import sem_secm_align.utility.filters.Gauss5;
-import sem_secm_align.utility.filters.Gauss7;
-import sem_secm_align.utility.filters.Identity;
-import sem_secm_align.utility.filters.Median3;
-import sem_secm_align.utility.filters.SobelX;
-import sem_secm_align.utility.filters.SobelY;
+import sem_secm_align.settings.EdgeDetectionSettings;
 
 /**
- *
+ * The component that handles user-input pertaining to edge detection.
  * @author Nathaniel
+ * @see EdgeDetectionSettings
+ * @see EdgeHistogram
+ * @see EdgeVisualizer
  */
 public class EdgeDetectionWindow extends JFrame{
     
+    /**
+     * Insantiates this JFrame component and user inputs
+     * @param parent the {@link Visualizer} component from which SECM and or SEM image information will be requested.
+     */
     public EdgeDetectionWindow(Visualizer parent){
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.parent = parent;
+        ed_settings = new EdgeDetectionSettings();
         this.getContentPane().removeAll();
         this.setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
         
+        
+        //Set-up the control panel (user input controls in the top-left of the window
         JPanel control_panel = new JPanel();
         control_panel.setLayout(new GridBagLayout());
         
@@ -69,8 +70,8 @@ public class EdgeDetectionWindow extends JFrame{
         c.weightx = 1;
         c.ipadx=DEFAULT_PAD;
         
-        image_sources = new JComboBox(new String[]{"SECM", "SEM"});
-        image_sources.setSelectedIndex(0);
+        image_sources = new JComboBox(ed_settings.IMAGE_SOURCE_OPTIONS);
+        image_sources.setSelectedIndex(ed_settings.DEFAULT_IMAGE_SOURCE);
         image_sources.addActionListener((ActionEvent e) -> {
             imageSourceChange();
         });
@@ -81,15 +82,15 @@ public class EdgeDetectionWindow extends JFrame{
         
         control_panel.add(new JLabel("Noise Filter:"), c);
         
-        String[] filter_names = new String[available_filters.length];
+        String[] filter_names = new String[ed_settings.FILTER_OPTIONS.length];
         for(int i = 0; i < filter_names.length; i++){
-            filter_names[i] = available_filters[i].getName();
+            filter_names[i] = ed_settings.FILTER_OPTIONS[i].getName();
         }
         
         c.gridx = 2;
         
         filter_options = new JComboBox(filter_names);
-        filter_options.setSelectedIndex(0);
+        filter_options.setSelectedIndex(ed_settings.DEFAULT_FILTER);
         filter_options.addActionListener((ActionEvent e) -> {
             filterChange();
         });
@@ -102,7 +103,7 @@ public class EdgeDetectionWindow extends JFrame{
         
         c.gridx = 2;
         
-        threshold_min = new JTextField("min");
+        threshold_min = new JTextField("Min");
         threshold_min.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
@@ -124,7 +125,7 @@ public class EdgeDetectionWindow extends JFrame{
         
         c.gridx = 2;
         
-        threshold_max = new JTextField("max");
+        threshold_max = new JTextField("Max");
         threshold_max.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
@@ -145,8 +146,8 @@ public class EdgeDetectionWindow extends JFrame{
         control_panel.add(new JLabel("View"), c);
         
         c.gridx = 2;
-        display_options = new JComboBox(new String[]{"Signals (pre-filtering)", "Signals (post-filtering)", "Edges (pre-thresholding)", "Edges (post-thresholding)"});
-        display_options.setSelectedIndex(0);
+        display_options = new JComboBox(ed_settings.DISPLAY_OPTIONS);
+        display_options.setSelectedIndex(ed_settings.DEFAULT_DISPLAY_MODE);
         display_options.addActionListener((ActionEvent e) -> {
             displayChange();
         });
@@ -184,17 +185,17 @@ public class EdgeDetectionWindow extends JFrame{
         c.gridy = 0;
         
         
-        
+        //set up the displays (the edge visualizer and histogram)
         JPanel display_panel = new JPanel();
         display_panel.setLayout(new GridBagLayout());
         
-        edge_display = new EdgeVisualizer(this);
+        edge_display = new EdgeVisualizer(this, ed_settings);
         display_panel.add(edge_display, c);
         
         c.gridy = 1;
         c.weighty = 0.5;
         
-        edge_histogram = new EdgeHistogram();
+        edge_histogram = new EdgeHistogram(ed_settings);
         display_panel.add(edge_histogram, c);
         
         c.anchor = GridBagConstraints.NORTHWEST;
@@ -212,8 +213,32 @@ public class EdgeDetectionWindow extends JFrame{
         c.weightx = 1;
         
         this.add(display_panel, c);
-        
         this.pack();
+        this.setSize(600, 600);
+        
+        //initialize inputs
+        threshold_max_accepted = 0;
+        threshold_min_accepted = 0;
+        last_display = ed_settings.DEFAULT_DISPLAY_MODE;
+        last_filter = ed_settings.DEFAULT_FILTER;
+        last_image_source = ed_settings.DEFAULT_IMAGE_SOURCE;
+        max = 0.0;
+        min = 0.0;
+        
+        //initialize currents for edge detection
+        double w = parent.getReactivityGridResolutionX();
+        double h = parent.getReactivityGridResolutionY();
+        if(parent.getSECMDisplayable()){
+            edge_display.setUnfilteredData(parent.getSECMCurrents(), w, h);
+            threshold_max_accepted = max;
+            threshold_min_accepted = min;
+            edge_histogram.setThresholdDomain(min, max);
+        }
+        else{
+            JOptionPane.showMessageDialog(this, "No SECM image is currently loaded.", "No SECM image", JOptionPane.ERROR_MESSAGE);
+        }
+        
+        
         this.setVisible(true);
     }
     
@@ -224,154 +249,7 @@ public class EdgeDetectionWindow extends JFrame{
     }
     
     private int applyDetection(){
-        // get the data for edge detection
-        int image_choice = image_sources.getSelectedIndex();
-        double[][] data_grid;
-        switch (image_choice) {
-            case 0 : 
-                if(parent.getSECMDisplayable()){
-                    data_grid = parent.getSECMCurrents();
-                    break;
-                }
-                else{
-                    JOptionPane.showMessageDialog(this, "No SECM image is currently loaded.", "No SECM image", JOptionPane.ERROR_MESSAGE);
-                    return 0;
-                }
-            case 1 : 
-                if(parent.getSEMDisplayable()){
-                    try {
-                        data_grid = parent.getSEMSignals();
-                    } catch (ImproperFileFormattingException ex) {
-                        ex.printStackTrace();
-                        return 0;
-                    }
-                    break;
-                }
-                else{
-                    JOptionPane.showMessageDialog(this, "No SEM image is currently loaded.", "No SEM image", JOptionPane.ERROR_MESSAGE);
-                    return 0;
-                }
-            default :
-                return 0;
-        }
-        export_2d_double(data_grid, "prefilter.csv");
-        // apply noise filtering
-        data_grid = available_filters[filter_options.getSelectedIndex()].applyFilter(data_grid);
-        export_2d_double(data_grid, "postfilter.csv");
-        
-        // apply sobel operators
-        SobelX sx = new SobelX();
-        SobelY sy = new SobelY();
-        double[][] xgradients = sx.applyFilter(data_grid);
-        double[][] ygradients = sy.applyFilter(data_grid);
-        double[][] squares = new double[xgradients.length][xgradients[0].length];
-        double[][] angles = new double[xgradients.length][xgradients[0].length];
-        int[][] edges = new int[xgradients.length][xgradients[0].length];
-        for(int x = 0; x < xgradients.length; x++){
-            for(int y = 0; y < xgradients[0].length; y++){
-                squares[x][y] = xgradients[x][y]*xgradients[x][y] + ygradients[x][y]*ygradients[x][y];
-                angles[x][y] = Math.atan2(ygradients[x][y], xgradients[x][y]);
-                edges[x][y] = 1;
-            }
-        }
-        // find maximum slopes
-        for(int x = 0; x < xgradients.length; x++){
-            for(int y = 0; y < xgradients[0].length; y++){
-                if((angles[x][y] <= Math.PI * 0.125 && angles[x][y] > Math.PI * -0.125) || (angles[x][y] > Math.PI * 0.775 || angles[x][y] <= -Math.PI * 0.775)){//0 or +-pi
-                    if(x < angles.length - 1){
-                        if(squares[x + 1][y] >= squares[x][y]){
-                            edges[x][y] = 0;
-                        }
-                    }
-                    if(x > 0){
-                        if(squares[x - 1][y] >= squares[x][y]){
-                            edges[x][y] = 0;
-                        }
-                    }
-                }
-                else if((angles[x][y] <= Math.PI * 0.375 && angles[x][y] > Math.PI * 0.125) || (angles[x][y] > -Math.PI * 0.775 && angles[x][y] <= -Math.PI * 0.625)){//pi/4 or -3pi/4
-                    if(x < angles.length - 1 && y < angles[0].length - 1){
-                        if(squares[x + 1][y + 1] >= squares[x][y]){
-                            edges[x][y] = 0;
-                        }
-                    }
-                    if(x > 0 && y > 0){
-                        if(squares[x - 1][y - 1] >= squares[x][y]){
-                            edges[x][y] = 0;
-                        }
-                    }
-                }
-                else if((angles[x][y] <= Math.PI * 0.625 && angles[x][y] > Math.PI * 0.375) || (angles[x][y] > -Math.PI * 0.625 && angles[x][y] <= -Math.PI * 0.375)){//pi/2 or -pi/2
-                    if(y < angles[0].length - 1){
-                        if(squares[x][y + 1] >= squares[x][y]){
-                            edges[x][y] = 0;
-                        }
-                    }
-                    if(y > 0){
-                        if(squares[x][y - 1] >= squares[x][y]){
-                            edges[x][y] = 0;
-                        }
-                    }
-                }
-                else if((angles[x][y] <= Math.PI * 0.775 && angles[x][y] > Math.PI * 0.625) || (angles[x][y] > -Math.PI * 0.375 && angles[x][y] <= -Math.PI * 0.125)){//3pi/4 or -pi/4
-                    if(x > 0 && y < angles[0].length - 1){
-                        if(squares[x - 1][y + 1] >= squares[x][y]){
-                            edges[x][y] = 0;
-                        }
-                    }
-                    if(x < angles.length - 1 && y > 0){
-                        if(squares[x + 1][y - 1] >= squares[x][y]){
-                            edges[x][y] = 0;
-                        }
-                    }
-                }
-            }
-        }
-        double[][] edge_magnitudes = new double[edges.length][edges[0].length];
-        double min = Math.sqrt(squares[0][0]);
-        double max = 0.0;
-        int total_edge_pixels = 0;
-        for(int x = 0; x < edges.length; x++){
-            for(int y = 0; y < edges[0].length; y++){
-                total_edge_pixels += edges[x][y];
-                if(edges[x][y] > 0){
-                    edge_magnitudes[x][y] = Math.sqrt(squares[x][y]);
-                    if(edge_magnitudes[x][y] > max){
-                        max = edge_magnitudes[x][y];
-                    }
-                    if(edge_magnitudes[x][y] < min){
-                        min = edge_magnitudes[x][y];
-                    }
-                }
-                else{
-                    edge_magnitudes[x][y] = 0.0;
-                }
-            }
-        }
-        export_2d_double(edge_magnitudes, "edgemags.csv");
-        int numbins = 20;
-        double binwidth = (max - min) / ((double)numbins);
-        int[] histogram = new int[numbins];
-        for(int x = 0; x < edges.length; x++){
-            for(int y = 0; y < edges[0].length; y++){
-                total_edge_pixels += edges[x][y];
-                if(edges[x][y] > 0){
-                    if(edge_magnitudes[x][y] < max){
-                        int index = (int)((edge_magnitudes[x][y] - min) / binwidth);
-                        histogram[index] ++;
-                    }
-                    else{
-                        histogram[numbins - 1] ++;
-                    }
-                }
-            }
-        }
-        double[] mags = new double[numbins];
-        for(int i = 0; i < numbins; i++){
-            mags[i] = binwidth * ((double)i) + min;
-        }
-        
-        Tests.export_histogram(mags, histogram, "hist.csv");
+        int[][] edges = edge_display.getEdges();
         
         // export edges
         parent.setSwitches(edges);
@@ -394,7 +272,8 @@ public class EdgeDetectionWindow extends JFrame{
         int selected_filter = filter_options.getSelectedIndex();
         if(selected_filter != last_filter){
             last_filter = selected_filter;
-            edge_display.setFilter(available_filters[selected_filter]);
+            edge_display.setFilter(ed_settings.FILTER_OPTIONS[selected_filter]);
+            forceThresholdUpdate();
         }
     }
     
@@ -405,7 +284,7 @@ public class EdgeDetectionWindow extends JFrame{
             double w = parent.getReactivityGridResolutionX();
             double h = parent.getReactivityGridResolutionY();
             switch (image_choice) {
-                case 0 : 
+                case EdgeDetectionSettings.IMAGE_SOURCE_SECM : 
                     if(parent.getSECMDisplayable()){
                         edge_display.setUnfilteredData(parent.getSECMCurrents(), w, h);
                     }
@@ -413,7 +292,7 @@ public class EdgeDetectionWindow extends JFrame{
                         JOptionPane.showMessageDialog(this, "No SECM image is currently loaded.", "No SECM image", JOptionPane.ERROR_MESSAGE);
                     }
                     break;
-                case 1 : 
+                case EdgeDetectionSettings.IMAGE_SOURCE_SEM : 
                     if(parent.getSEMDisplayable()){
                         try {
                             edge_display.setUnfilteredData(parent.getSEMSignals(), w, h);
@@ -428,7 +307,9 @@ public class EdgeDetectionWindow extends JFrame{
                 default :
                     break;
             }
+            forceThresholdUpdate();
         }
+        
     }
     
     private void thresholdMaxChange(){
@@ -445,6 +326,7 @@ public class EdgeDetectionWindow extends JFrame{
                 threshold_max_accepted = newmax;
             }
             edge_display.setUpperThreshold(threshold_max_accepted);
+            edge_histogram.setThresholdDomain(threshold_min_accepted, threshold_max_accepted);
         }
         catch(Exception ex){
             
@@ -465,6 +347,7 @@ public class EdgeDetectionWindow extends JFrame{
                 threshold_max_accepted = newmax;
             }
             edge_display.setUpperThreshold(threshold_max_accepted);
+            edge_histogram.setThresholdDomain(threshold_min_accepted, threshold_max_accepted);
             if(threshold_max_accepted >= max){
                 threshold_max.setText("Max");
             }
@@ -491,6 +374,7 @@ public class EdgeDetectionWindow extends JFrame{
                 threshold_min_accepted = newmin;
             }
             edge_display.setLowerThreshold(threshold_min_accepted);
+            edge_histogram.setThresholdDomain(threshold_min_accepted, threshold_max_accepted);
         }
         catch(Exception ex){
             
@@ -511,7 +395,8 @@ public class EdgeDetectionWindow extends JFrame{
                 threshold_min_accepted = newmin;
             }
             edge_display.setLowerThreshold(threshold_min_accepted);
-            if(threshold_min_accepted >= min){
+            edge_histogram.setThresholdDomain(threshold_min_accepted, threshold_max_accepted);
+            if(threshold_min_accepted <= min){
                 threshold_min.setText("Min");
             }
             else{
@@ -523,6 +408,27 @@ public class EdgeDetectionWindow extends JFrame{
         }
     }
     
+    private void forceThresholdUpdate(){
+        if(threshold_max_accepted >= max){
+            threshold_max.setText("Max");
+            threshold_max_accepted = max;
+        }
+        if(threshold_min_accepted <= min){
+            threshold_min.setText("Min");
+            threshold_min_accepted = min;
+        }
+        String text = threshold_max.getText();
+        if(text.equalsIgnoreCase("max")){
+            threshold_max_accepted = max;
+        }
+        text = threshold_min.getText();
+        if(text.equalsIgnoreCase("min")){
+            threshold_min_accepted = min;
+        }
+        
+        edge_histogram.setThresholdDomain(threshold_min_accepted, threshold_max_accepted);
+    }
+    
     private double threshold_max_accepted;
     private double threshold_min_accepted;
     private int last_display;
@@ -530,6 +436,7 @@ public class EdgeDetectionWindow extends JFrame{
     private int last_image_source;
     private double max;
     private double min;
+    private EdgeDetectionSettings ed_settings;
     
     private Visualizer parent;
     private EdgeVisualizer edge_display;
@@ -543,11 +450,8 @@ public class EdgeDetectionWindow extends JFrame{
     private JComboBox display_options;
     
     
-    
-    private final Filter[] available_filters = new Filter[]{new Identity(), new Gauss3(), new Gauss5(), new Gauss7(), new Median3()};
-    
     /**
-     * The padding around most components, unless <code>FIELD_PAD</code> or <code>SPACER_PAD</code> is used instead.
+     * The padding around most components, unless {@link #SPACER_PAD} is used instead.
      */
     private static final int DEFAULT_PAD = 3;
     /**

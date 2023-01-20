@@ -1,11 +1,12 @@
 /*
  * Created: 2022-04-12
- * Updated: 2022-12-16
+ * Updated: 2023-01-13
  * Nathaniel Leslie
  */
 package sem_secm_align.settings;
 
 import java.awt.Color;
+import static sem_secm_align.settings.Constants.RELATIVE_ERR_CUTOFF;
 
 /**
  * Holds colours that are used by the visualizer in a centralized place.
@@ -18,17 +19,32 @@ public class ColourSettings {
      * @param input The input data. Must be a value between <code>0</code> and <code>1</code>.
      * @param mode Selector for the colour scale to be used. Options are:
      * <ul>
-     * <li><code>CSCALE_GREY</code>: Greyscale where <code>0</code> is black and <code>1</code> is white.</li>
+     * <li>{@link #CSCALE_GREY}: Greyscale where <code>0</code> is black and <code>1</code> is white.</li>
+     * <li>{@link #CSCALE_GREY_MAGENTAZERO}: Greyscale where less than {@link sem_secm_align.settings.Constants#RELATIVE_ERR_CUTOFF} is magenta, otherwise the colour scales from black at just greater than {@link sem_secm_align.settings.Constants#RELATIVE_ERR_CUTOFF} to white at <code>1</code>.</li>
+     * <li>{@link #CSCALE_RED_BLACKZERO}: Redscale where less than {@link sem_secm_align.settings.Constants#RELATIVE_ERR_CUTOFF} is black, otherwise the colour scales from red at just greater than {@link sem_secm_align.settings.Constants#RELATIVE_ERR_CUTOFF} to white at <code>1</code>.</li>
      * </ul>
-     * @return The scaled colour or <code>BACKGROUND_COLOUR</code> if an invalid mode is selected.
+     * @return The scaled colour or {@link #BACKGROUND_COLOUR} if an invalid mode is selected.
      */
     public static Color colourScale(double input, int mode){
-        if(mode == CSCALE_GREY){
-            int v = (int)(255.0*input);
-            return new Color(v,v,v);
-        }
-        else{
-            return BACKGROUND_COLOUR;
+        int v;
+        switch(mode){          
+            case CSCALE_GREY:
+                v = (int)(255.0*input);
+                return new Color(v,v,v);
+            case CSCALE_GREY_MAGENTAZERO:
+                v = (int)(255.0*input);
+                if(input < RELATIVE_ERR_CUTOFF){
+                    return new Color(255,0,255);
+                }
+                return new Color(v,v,v);
+            case CSCALE_RED_BLACKZERO:
+                v = (int)(255.0*input);
+                if(input < RELATIVE_ERR_CUTOFF){
+                    return new Color(0,0,0);
+                }
+                return new Color(255,v,v);
+            default:
+                return BACKGROUND_COLOUR;
         }
     }
     
@@ -58,7 +74,19 @@ public class ColourSettings {
     public static final Color SELECTION_COLOUR = new Color(255,255,0);
     
     /**
-     * The greyscale <code>colourScale()</code> mode. <code>0</code> is black and <code>1</code> is white.
+     * A greyscale {@link #colourScale(double, int) } mode. <code>0</code> is black and <code>1</code> is white.
      */
     public static final int CSCALE_GREY = 0;
+    
+    /**
+     * A greyscale {@link #colourScale(double, int) } mode. For inputs greater than {@link sem_secm_align.settings.Constants#RELATIVE_ERR_CUTOFF RELATIVE_ERR_CUTOFF} the colour scales as <code>0</code> is black and <code>1</code> is white.
+     * Otherwise, {@link #colourScale(double, int) } will output magenta.
+     */
+    public static final int CSCALE_GREY_MAGENTAZERO = 1;
+    
+    /**
+     * The redscale {@link #colourScale(double, int) } mode. For inputs greater than {@link sem_secm_align.settings.Constants#RELATIVE_ERR_CUTOFF RELATIVE_ERR_CUTOFF} the colour scales as <code>0</code> is red and <code>1</code> is white.
+     * Otherwise, {@link #colourScale(double, int) } will output magenta.
+     */
+    public static final int CSCALE_RED_BLACKZERO = 2;
 }

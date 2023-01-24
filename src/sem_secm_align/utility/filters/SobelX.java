@@ -8,8 +8,9 @@ package sem_secm_align.utility.filters;
 import static sem_secm_align.utility.filters.Convolution.convolve2D;
 
 /**
- *
+ * A Sobel x filter used for detecting edges in the x-direction.
  * @author Nathaniel
+ * @see SobelY
  */
 public class SobelX implements Filter{
     
@@ -29,6 +30,10 @@ public class SobelX implements Filter{
         return convolve2D(input_grid, kernel);
     }
     
+    /**
+     * Returns <code>"Sobel_x"</code>.
+     * @return <code>"Sobel_x"</code>
+     */
     @Override
     public String getName(){
         return "Sobel_x";

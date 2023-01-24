@@ -8,7 +8,8 @@ package sem_secm_align.utility.filters;
 import static sem_secm_align.utility.filters.Convolution.convolve2D;
 
 /**
- *
+ * A 3x3 gaussian filter.
+ * The Gaussian is normalized and goes out to 3sigma at each edge
  * @author Nathaniel
  */
 public class Gauss3 implements Filter{
@@ -32,6 +33,10 @@ public class Gauss3 implements Filter{
         return convolve2D(input_grid, kernel);
     }
     
+    /**
+     * Returns <code>"Gauss 3x3"</code>.
+     * @return <code>"Gauss 3x3"</code>
+     */
     @Override
     public String getName(){
         return "Gauss 3x3";

@@ -185,4 +185,9 @@ public class EdgeDetectionSettings {
      * Indicates that edges are to be detected from the {@link sem_secm_align.Visualizer#sem_image SEM image}.
      */
     public static final int IMAGE_SOURCE_SEM = 1;
+    /**
+     * This is a reserved image source designation.
+     * @see sem_secm_align.edge_detection.EdgeDetectionWindow#applyDetection() 
+     */
+    public static final int IMAGE_SOURCE_NONE = -1;
 }

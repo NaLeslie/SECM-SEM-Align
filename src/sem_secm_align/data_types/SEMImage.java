@@ -19,7 +19,7 @@ import sem_secm_align.settings.ColourSettings;
 public class SEMImage {
     
     /**
-     * Reads an SEM image that is stored at filepath. If there is an error, the image will be a black pixel and <code>isDisplayable()</code> will return <code>false</code>.
+     * Reads an SEM image that is stored at filepath. If there is an error, the image will be a black pixel and {@link #isDisplayable()} will return <code>false</code>.
      * @param filepath The path to the SEM image
      */
     public SEMImage(String filepath){
@@ -43,6 +43,7 @@ public class SEMImage {
      * Creates a 1x1 image consisting of a black pixel.
      * <strong>Do not use this.</strong>
      */
+    @Deprecated
     public SEMImage(){
         displayable = false;
         sem_image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
@@ -60,7 +61,7 @@ public class SEMImage {
     }
     
     /**
-     * Returns the SEM image as a <code>BufferedImage</code>.
+     * Returns the SEM image as a {@link BufferedImage}.
      * @return the SEM image
      */
     public BufferedImage getImage(){

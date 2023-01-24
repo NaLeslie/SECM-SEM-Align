@@ -6,7 +6,7 @@
 package sem_secm_align.settings;
 
 /**
- *
+ * Contains useful constants used throughout the program.
  * @author Nathaniel
  */
 public class Constants {

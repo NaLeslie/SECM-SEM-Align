@@ -1,6 +1,6 @@
 /*
  * Created: 2022-01-14
- * Updated: 2022-06-22
+ * Updated: 2023-01-23
  * Nathaniel Leslie
  */
 package sem_secm_align;
@@ -27,6 +27,7 @@ import java.util.Stack;
 import javax.swing.JPanel;
 import sem_secm_align.data_types.ImproperFileFormattingException;
 import sem_secm_align.data_types.SEMImage;
+import sem_secm_align.edge_detection.EdgeDetectionWindow;
 import sem_secm_align.settings.ColourSettings;
 import sem_secm_align.settings.Settings;
 import static sem_secm_align.utility.ImageParser.bufferedImageToGrayscale;
@@ -37,7 +38,7 @@ import static sem_secm_align.utility.ImageParser.bufferedImageToGrayscale;
  */
 public class Visualizer extends JPanel{
     /**
-     * Creates a new instance of <code>Visualizer</code>.
+     * Creates a new instance of {@link Visualizer}.
      * @param parent The parent window for this component so that this component may communicate with its parent.
      * @param settings The default settings of the parent component.
      */
@@ -120,6 +121,12 @@ public class Visualizer extends JPanel{
     
     /**
      * Forces the graphics of this visualizer to update
+     * @see #render_mode
+     * @see #defaultImage() 
+     * @see #drawSECM() 
+     * @see #drawSEM(float) 
+     * @see #drawReactivity() 
+     * @see #drawSampling() 
      */
     public void updateGraphics(){
         switch (render_mode) {
@@ -220,7 +227,7 @@ public class Visualizer extends JPanel{
     
     /**
      * Creates an image of the SEM image with the set transparency overlaid on the SECM image.
-     * The SECM image is rendered the same way as <code>drawSECM()</code>.
+     * The SECM image is rendered the same way as {@link #drawSECM()}.
      * @return an image of the SEM image with the set transparency overlaid on the SECM image.
      */
     private BufferedImage drawSEM(float transparency){
@@ -426,7 +433,7 @@ public class Visualizer extends JPanel{
     
     /**
      * Creates an image of the reactivity with the pixels that will be sampled being shaded orange.
-     * Calls <code>drawReactivity()</code> and then renders the orange grid-sections on top.
+     * Calls {@link #drawReactivity()} and then renders the orange grid-sections on top.
      * @return 
      */
     private Image drawSampling(){
@@ -544,7 +551,7 @@ public class Visualizer extends JPanel{
     }
     
     /**
-     * Called to report the position of the mouse to <code>PARENT</code> so that relevant information can be displayed.
+     * Called to report the position of the mouse to {@link #PARENT} so that relevant information can be displayed.
      * @param mx the mouse x-coordinate in pixels relative to the top-left corner of this component.
      * @param my the mouse y-coordinate in pixels relative to the top-left corner of this component.
      */
@@ -1399,6 +1406,19 @@ public class Visualizer extends JPanel{
         return sums;
     }
     
+    /**
+     * Returns the size of {@link #switches}
+     * @return the size of {@link #switches} as: <code>new int[]{switches.length, switches[0].length}</code>
+     */
+    public int[] getReactivityGridSize(){
+        return new int[]{switches.length, switches[0].length};
+    }
+    
+    /**
+     * Sets the switches to <code>new_switches</code>.
+     * @param new_switches the new switches.
+     * @see EdgeDetectionWindow#applyDetection() 
+     */
     public void setSwitches(int[][] new_switches){
         switches = new_switches;
         updateGraphics();
@@ -1411,15 +1431,15 @@ public class Visualizer extends JPanel{
      * <code>(current_in_amps) = (secm_current)*current_scale</code>
      * @param fileformat the intended file format. There are three options:
      * <ul>
-     * <li><code>FILETYPE_CSV</code>: Comma separated values (csv)</li>
-     * <li><code>FILETYPE_TSV</code>: Tab separated values (tsv)</li>
-     * <li><code>FILETYPE_NOT_SPECIFIED</code>: Will save using the default encoding (currently csv)</li>
+     * <li>{@link #FILETYPE_CSV}: Comma separated values (csv)</li>
+     * <li>{@link #FILETYPE_TSV}: Tab separated values (tsv)</li>
+     * <li>{@link #FILETYPE_NOT_SPECIFIED}: Will save using the default encoding (currently csv)</li>
      * </ul>
      * @param interpolation the interpolation method to be used. The following options are available:
      * <ul>
-     * <li><code>SECMImage.INTERPOLATION_NN</code>: Nearest-neighbor interpolation. (Constant function)</li>
-     * <li><code>SECMImage.INTERPOLATION_BILINEAR</code>: Bilinear interpolation. (Linear function)</li>
-     * <li><code>SECMImage.INTERPOLATION_BICUBIC</code>: Bicubic interpolation. (Cubic function).</li>
+     * <li>{@link SECMImage#INTERPOLATION_NN}: Nearest-neighbor interpolation. (Constant function)</li>
+     * <li>{@link SECMImage#INTERPOLATION_BILINEAR}: Bilinear interpolation. (Linear function)</li>
+     * <li>{@link SECMImage#INTERPOLATION_BICUBIC}: Bicubic interpolation. (Cubic function).</li>
      * </ul>
      * @throws IOException 
      */
@@ -1490,7 +1510,7 @@ public class Visualizer extends JPanel{
     
     //Fields
     /**
-     * The image that is rendered in the visualizer in <code>paint()</code>.
+     * The image that is rendered in the visualizer in {@link #paint(java.awt.Graphics)}.
      */
     private Image base_image;
     /**
@@ -1512,9 +1532,9 @@ public class Visualizer extends JPanel{
      * Determines the current tool used by the reactivity screen.
      * This should have the value of one of the following:
      * <ul>
-     * <li><code>PENCIL</code></li>
-     * <li><code>CROP</code></li>
-     * <li><code>FILL</code></li>
+     * <li>{@link #PENCIL}</li>
+     * <li>{@link #CROP}</li>
+     * <li>{@link #FILL}</li>
      * </ul>
      */
     private int reac_tool;
@@ -1530,10 +1550,10 @@ public class Visualizer extends JPanel{
      * The type of information to be displayed.
      * This should have the value of one of the following:
      * <ul>
-     * <li><code>SECM_MODE</code></li>
-     * <li><code>SEM_MODE</code></li>
-     * <li><code>REACTIVITY_MODE</code></li>
-     * <li><code>SAMPLING_MODE</code></li>
+     * <li>{@link #SECM_MODE}</li>
+     * <li>{@link #SEM_MODE}</li>
+     * <li>{@link #REACTIVITY_MODE}</li>
+     * <li>{@link #SAMPLING_MODE}</li>
      * </ul>
      */
     private int render_mode;

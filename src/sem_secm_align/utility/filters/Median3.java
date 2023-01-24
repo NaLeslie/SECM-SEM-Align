@@ -9,7 +9,7 @@ import java.util.Arrays;
 import static sem_secm_align.utility.filters.Convolution.extrapolatePad;
 
 /**
- *
+ * A 3x3 median filter. This type of filter is most successful against "salt and pepper" or "shot" noise.
  * @author Nathaniel
  */
 public class Median3 implements Filter{
@@ -37,6 +37,10 @@ public class Median3 implements Filter{
         return filtered_grid;
     }
     
+    /**
+     * Returns <code>"Median 3x3"</code>.
+     * @return <code>"Median 3x3"</code>
+     */
     @Override
     public String getName(){
         return "Median 3x3";

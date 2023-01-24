@@ -1,17 +1,20 @@
 /*
  * Created: 2022-12-01
- * Updated: 2023-01-10
+ * Updated: 2023-01-23
  * Nathaniel Leslie
  */
 package sem_secm_align.edge_detection;
 
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
@@ -36,7 +39,7 @@ public class EdgeDetectionWindow extends JFrame{
      * Insantiates this JFrame component and user inputs
      * @param parent the {@link Visualizer} component from which SECM and or SEM image information will be requested.
      */
-    public EdgeDetectionWindow(Visualizer parent){
+    public EdgeDetectionWindow(Visualizer parent) throws IOException{
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.parent = parent;
         ed_settings = new EdgeDetectionSettings();
@@ -215,6 +218,9 @@ public class EdgeDetectionWindow extends JFrame{
         this.add(display_panel, c);
         this.pack();
         this.setSize(600, 600);
+        this.setTitle("SEM-SECM Image Aligner");
+        Image icon = ImageIO.read(parent.getClass().getResource("IAlogo32.png"));
+        this.setIconImage(icon);
         
         //initialize inputs
         threshold_max_accepted = 0;
@@ -242,24 +248,56 @@ public class EdgeDetectionWindow extends JFrame{
         this.setVisible(true);
     }
     
+    /**
+     * This method is how this window receives updates from its {@link #edge_display} when the edge histogram changes. 
+     * This method updates {@link #max} and {@link #min} and passes on information to the {@link #edge_histogram}.
+     * @param magnitudes The lowest magnitude represented for each bin of the histogram.
+     * @param counts The population for each bin of the histogram.
+     * @param minimum The lowest edge magnitude.
+     * @param maximum The highest edge magnitude.
+     * @see EdgeHistogram#setHistogramData(double[], int[])
+     */
     public void setHistogramData(double[] magnitudes, int[] counts, double minimum, double maximum){
         edge_histogram.setHistogramData(magnitudes, counts);
         max = maximum;
         min = minimum;
     }
     
-    private int applyDetection(){
+    /**
+     * Triggered when {@link #apply_option} is pressed.
+     * Requests edges from {@link #edge_display} and reports them to {@link #parent}.
+     * @see EdgeVisualizer#getEdges() 
+     * @see Visualizer#setSwitches(int[][]) 
+     */
+    private void applyDetection(){
         int[][] edges = edge_display.getEdges();
+        int[] destination_size = parent.getReactivityGridSize();
+        if(edges.length == destination_size[0] && edges[0].length == destination_size[1]){
+            // export edges
+            parent.setSwitches(edges);
+        }
+        else{
+            //notify the user that something changed with the reactivity grid since the last time they selected the source image
+            JOptionPane.showMessageDialog(this, "The detected edges have a different size from the reactivity grid. Something may have changed with the resolution since the last time the image source was selected.\nImage data has been re-freshed. This may have affected your detected edges.", "Edge and Reactivity Size Mismatch", JOptionPane.ERROR_MESSAGE);
+            last_image_source = EdgeDetectionSettings.IMAGE_SOURCE_NONE;
+            imageSourceChange();
+        }
         
-        // export edges
-        parent.setSwitches(edges);
-        return 1;
     }
     
+    /**
+     * Triggered when {@link #close_option} is pressed.
+     * Closes the window.
+     */
     private void closeDetection(){
         this.dispose();
     }
     
+    /**
+     * Triggered when the user interacts with {@link #display_options}.
+     * If the selected display mode has changed, the new display mode will be sent to the {@link #edge_display}.
+     * @see EdgeVisualizer#setDisplayMode(int) 
+     */
     private void displayChange(){
         int di = display_options.getSelectedIndex();
         if(di >=0 && di < 4 && di != last_display){
@@ -268,6 +306,11 @@ public class EdgeDetectionWindow extends JFrame{
         }
     }
     
+    /**
+     * Triggered when the user interacts with {@link #filter_options}.
+     * If the selected filter has changed, the new filter will be sent to the {@link #edge_display}.
+     * @see EdgeVisualizer#setFilter(sem_secm_align.utility.filters.Filter) 
+     */
     private void filterChange(){
         int selected_filter = filter_options.getSelectedIndex();
         if(selected_filter != last_filter){
@@ -277,6 +320,14 @@ public class EdgeDetectionWindow extends JFrame{
         }
     }
     
+    /**
+     * Triggered when the user interacts with {@link #image_sources}.
+     * If the selected image has changed, the image data will be requested from the {@link #parent}.
+     * This image data is then pushed to the {@link #edge_display}.
+     * @see Visualizer#getSECMCurrents() 
+     * @see Visualizer#getSEMSignals() 
+     * @see EdgeVisualizer#setUnfilteredData(double[][], double, double) 
+     */
     private void imageSourceChange(){
         int image_choice = image_sources.getSelectedIndex();
         if(image_choice != last_image_source){
@@ -312,6 +363,11 @@ public class EdgeDetectionWindow extends JFrame{
         
     }
     
+    /**
+     * Triggered when the user changes the content of {@link #threshold_max}.
+     * If the contents of {@link #threshold_max} are acceptable, the value of {@link #threshold_max_accepted} will be modified accordingly.
+     * @see EdgeHistogram#setThresholdDomain(double, double) 
+     */
     private void thresholdMaxChange(){
         try{
             String text = threshold_max.getText();
@@ -333,6 +389,12 @@ public class EdgeDetectionWindow extends JFrame{
         }
     }
     
+    /**
+     * Triggered when the user switches focus away from {@link #threshold_max}.
+     * <p>If the contents of {@link #threshold_max} are acceptable, the value of {@link #threshold_max_accepted} will be modified accordingly.
+     * <p>If the contents of {@link #threshold_max} are not acceptable, {@link #threshold_max} will be changed to display {@link #threshold_max_accepted} instead.
+     * @see EdgeHistogram#setThresholdDomain(double, double) 
+     */
     private void thresholdMaxFocusLost(){
         try{
             String text = threshold_max.getText();
@@ -360,6 +422,11 @@ public class EdgeDetectionWindow extends JFrame{
         }
     }
     
+    /**
+     * Triggered when the user changes the content of {@link #threshold_minx}.
+     * If the contents of {@link #threshold_min} are acceptable, the value of {@link #threshold_min_accepted} will be modified accordingly.
+     * @see EdgeHistogram#setThresholdDomain(double, double) 
+     */
     private void thresholdMinChange(){
         try{
             String text = threshold_min.getText();
@@ -381,6 +448,12 @@ public class EdgeDetectionWindow extends JFrame{
         }
     }
     
+    /**
+     * Triggered when the user switches focus away from {@link #threshold_min}.
+     * <p>If the contents of {@link #threshold_min} are acceptable, the value of {@link #threshold_min_accepted} will be modified accordingly.
+     * <p>If the contents of {@link #threshold_min} are not acceptable, {@link #threshold_min} will be changed to display {@link #threshold_min_accepted} instead.
+     * @see EdgeHistogram#setThresholdDomain(double, double) 
+     */
     private void thresholdMinFocusLost(){
         try{
             String text = threshold_min.getText();
@@ -408,6 +481,10 @@ public class EdgeDetectionWindow extends JFrame{
         }
     }
     
+    /**
+     * Forces {@link #threshold_max_accepted} and {@link #threshold_min_accepted} to update.
+     * @see EdgeHistogram#setThresholdDomain(double, double) 
+     */
     private void forceThresholdUpdate(){
         if(threshold_max_accepted >= max){
             threshold_max.setText("Max");
@@ -429,24 +506,78 @@ public class EdgeDetectionWindow extends JFrame{
         edge_histogram.setThresholdDomain(threshold_min_accepted, threshold_max_accepted);
     }
     
+    /**
+     * The most recently accepted threshold maximum.
+     */
     private double threshold_max_accepted;
+    /**
+     * The most recently accepted threshold minimum.
+     */
     private double threshold_min_accepted;
+    /**
+     * The most recent display mode.
+     */
     private int last_display;
+    /**
+     * The most recent filter selection.
+     */
     private int last_filter;
+    /**
+     * The most recent image selection
+     */
     private int last_image_source;
+    /**
+     * The maximum edge magnitude for the filter and image source combination.
+     */
     private double max;
+    /**
+     * The minimum edge magnitude for the filter and image source combination.
+     */
     private double min;
+    /**
+     * The settings that are shared between this frame, the {@link #edge_display} as well as the {@link #edge_histogram}.
+     */
     private EdgeDetectionSettings ed_settings;
     
+    /**
+     * The {@link Visualizer} component from which image data can be requested, and to which edge data can be sent.
+     */
     private Visualizer parent;
+    /**
+     * The component responsible for displaying the image and its detected edges.
+     */
     private EdgeVisualizer edge_display;
+    /**
+     * The component responsible for displaying the histogram of the edge magnitudes.
+     */
     private EdgeHistogram edge_histogram;
+    /**
+     * The component that gives the user the ability to select which image's edges are to be detected.
+     */
     private JComboBox image_sources;
+    /**
+     * The component that gives the user options for filtering noise in the image.
+     */
     private JComboBox filter_options;
+    /**
+     * The button that triggers edge data to be sent to the {@link #parent}.
+     */
     private JButton apply_option;
+    /**
+     * The button that closes the window.
+     */
     private JButton close_option;
+    /**
+     * The input field for the threshold maximum
+     */
     private JTextField threshold_max;
+    /**
+     * The input field for the threshold minimum
+     */
     private JTextField threshold_min;
+    /**
+     * The component that gives the user options for which data to display in the {@link #edge_display}.
+     */
     private JComboBox display_options;
     
     

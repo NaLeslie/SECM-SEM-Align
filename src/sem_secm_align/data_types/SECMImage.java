@@ -16,7 +16,7 @@ import sem_secm_align.utility.Search;
 import sem_secm_align.utility.SingularMatrixException;
 
 /**
- *
+ * Contains all pertinent information for an SECM image.
  * @author Nathaniel
  */
 public class SECMImage {
@@ -25,6 +25,7 @@ public class SECMImage {
      * Creates a dummy SECM image.
      * <strong>This constructor is not intended for use.</strong>
      */
+    @Deprecated
     public SECMImage(){
         displayable = false;
         current_minimum = 0.0;
@@ -35,7 +36,7 @@ public class SECMImage {
     }
     
     /**
-     * Loads an SECM image in from a file. If the loading fails, this instance will be initialized to the dummy SECM image from <code>SECMImage()</code> and <code>isDisplayable()</code> will return <code>false</code>.
+     * Loads an SECM image in from a file. If the loading fails, this instance will be initialized to the dummy SECM image from {@link SECMImage()} and {@link #isDisplayable()} will return <code>false</code>.
      * @param filepath The path to the SECM image data.
      */
     public SECMImage(String filepath){
@@ -77,9 +78,9 @@ public class SECMImage {
      * @param y the y-coordinate of the SECM image expressed in the same units as the raw data that was read initially.
      * @param interpolation_mode the interpolation method to be used. The following options are available:
      * <ul>
-     * <li><code>INTERPOLATION_NN</code>: Nearest-neighbor interpolation. (Constant function)</li>
-     * <li><code>INTERPOLATION_BILINEAR</code>: Bilinear interpolation. (Linear function)</li>
-     * <li><code>INTERPOLATION_BICUBIC</code>: Bicubic interpolation. (Cubic function). <strong>This mode requires an image larger than 5x5 to work</strong></li>
+     * <li>{@link #INTERPOLATION_NN}: Nearest-neighbor interpolation. (Constant function)</li>
+     * <li>{@link #INTERPOLATION_BILINEAR}: Bilinear interpolation. (Linear function)</li>
+     * <li>{@link #INTERPOLATION_BICUBIC}: Bicubic interpolation. (Cubic function). <strong>This mode requires an image larger than 5x5 to work</strong></li>
      * </ul>
      * @return The interpolated current at <code>(x,y)</code>. The return value will be between <code>0</code> and <code>1</code> inclusively. 
      * If an invalid <code>interpolation_mode</code> is entered or if an error occurs, <code>Double.NaN</code> will be returned.
@@ -374,12 +375,12 @@ public class SECMImage {
      * @param y the y-coordinate of the SECM image expressed in the same units as the raw data that was read initially.
      * @param interpolation_mode the interpolation method to be used. The following options are available:
      * <ul>
-     * <li><code>INTERPOLATION_NN</code>: Nearest-neighbor interpolation. (Constant function)</li>
-     * <li><code>INTERPOLATION_BILINEAR</code>: Bilinear interpolation. (Linear function)</li>
-     * <li><code>INTERPOLATION_BICUBIC</code>: Bicubic interpolation. (Cubic function). <strong>This mode requires an image larger than 5x5 to work</strong></li>
+     * <li>{@link #INTERPOLATION_NN}: Nearest-neighbor interpolation. (Constant function)</li>
+     * <li>{@link #INTERPOLATION_BILINEAR}: Bilinear interpolation. (Linear function)</li>
+     * <li>{@link #INTERPOLATION_BICUBIC}: Bicubic interpolation. (Cubic function). <strong>This mode requires an image larger than 5x5 to work</strong></li>
      * </ul>
      * @return The interpolated current at <code>(x,y)</code>.
-     * If an invalid <code>interpolation_mode</code> is entered or if an error occurs, <code>Double.NaN</code> will be returned.
+     * If an invalid <code>interpolation_mode</code> is entered or if an error occurs, {@link Double#NaN} will be returned.
      */
     public double getCurrent(double x, double y, int interpolation_mode){
         return getScaledCurrent(x, y, interpolation_mode)*current_amplitude + current_minimum;
@@ -532,7 +533,7 @@ public class SECMImage {
      */
     private double current_minimum;
     /**
-     * The difference <code>current_maximum - current_minimum</code>. Used to convert between scaled and unscaled current.
+     * The difference {@link #current_maximum} - {@link #current_minimum}. Used to convert between scaled and unscaled current.
      */
     private double current_amplitude;
     /**

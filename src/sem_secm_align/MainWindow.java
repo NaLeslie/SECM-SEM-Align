@@ -8,13 +8,16 @@ package sem_secm_align;
 import sem_secm_align.edge_detection.EdgeDetectionWindow;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import javax.imageio.ImageIO;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -44,7 +47,7 @@ public class MainWindow extends JFrame{
      * Launches a new instance of the main window
      */
     @SuppressWarnings("OverridableMethodCallInConstructor")
-    public MainWindow(){
+    public MainWindow() throws IOException{
         
         SETTINGS = new Settings();
         view_screen = new Visualizer(this, SETTINGS);
@@ -193,7 +196,7 @@ public class MainWindow extends JFrame{
         c.gridx=1;
         c.ipadx=FIELD_PAD;
         sem_scale_field = new JTextField("1");
-        def = SETTINGS.DEFAULT_SEM_SCALE / def_reso_fact;
+        def = roundToSF(SETTINGS.DEFAULT_SEM_SCALE / def_reso_fact);
         sem_scale_field.setText("" + def);
         sem_scale_field.addKeyListener(new KeyAdapter() {
             @Override
@@ -225,7 +228,7 @@ public class MainWindow extends JFrame{
         c.gridx=5;
         c.ipadx=FIELD_PAD;
         sem_rotation_field = new JTextField("0");
-        def = SETTINGS.DEFAULT_SEM_ROTATION;
+        def = roundToSF(SETTINGS.DEFAULT_SEM_ROTATION);
         sem_rotation_field.setText("" + def);
         sem_rotation_field.addKeyListener(new KeyAdapter() {
             @Override
@@ -246,7 +249,7 @@ public class MainWindow extends JFrame{
         sem_tab_sizepos.add(new JLabel("X-offset:"), c);
         c.gridx=1;
         sem_xoffset_field = new JTextField("0");
-        def = SETTINGS.DEFAULT_SEM_XOFFSET / def_dist_fact;
+        def = roundToSF(SETTINGS.DEFAULT_SEM_XOFFSET / def_dist_fact);
         sem_xoffset_field.setText("" + def);
         sem_xoffset_field.addKeyListener(new KeyAdapter() {
             @Override
@@ -281,7 +284,7 @@ public class MainWindow extends JFrame{
         sem_tab_sizepos.add(new JLabel("Y-offset:"), c);
         c.gridx=1;
         sem_yoffset_field = new JTextField("0");
-        def = SETTINGS.DEFAULT_SEM_YOFFSET / def_dist_fact;
+        def = roundToSF(SETTINGS.DEFAULT_SEM_YOFFSET / def_dist_fact);
         sem_yoffset_field.setText("" + def);
         sem_yoffset_field.addKeyListener(new KeyAdapter() {
             @Override
@@ -336,7 +339,7 @@ public class MainWindow extends JFrame{
         c.gridy=1;
         c.ipadx=FIELD_PAD;
         reac_xres_field = new JTextField("0.1");
-        def = SETTINGS.DEFAULT_REAC_XRESOLUTION / def_dist_fact;
+        def = roundToSF(SETTINGS.DEFAULT_REAC_XRESOLUTION / def_dist_fact);
         reac_xres_field.setText("" + def);
         reac_xres_field.addKeyListener(new KeyAdapter() {
             @Override
@@ -369,7 +372,7 @@ public class MainWindow extends JFrame{
         c.gridy=1;
         c.ipadx=FIELD_PAD;
         reac_yres_field = new JTextField("0.1");
-        def = SETTINGS.DEFAULT_REAC_YRESOLUTION / def_dist_fact;
+        def = roundToSF(SETTINGS.DEFAULT_REAC_YRESOLUTION / def_dist_fact);
         reac_yres_field.setText("" + def);
         reac_yres_field.addKeyListener(new KeyAdapter() {
             @Override
@@ -639,6 +642,9 @@ public class MainWindow extends JFrame{
         this.pack();
         this.setSize(600, 600);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setTitle("SEM-SECM Image Aligner");
+        Image icon = ImageIO.read(this.getClass().getResource("IAlogo32.png"));
+        this.setIconImage(icon);
         this.setVisible(true);
         control_panel.addChangeListener((ChangeEvent e) -> {
             tabChanged();
@@ -648,8 +654,8 @@ public class MainWindow extends JFrame{
  
     //Event Handlers
     /**
-     * Triggers when the <code>control_panel</code> tab focus changes.
-     * Updates the <code>view_screen</code> render mode.
+     * Triggers when the {@link #control_panel} tab focus changes.
+     * Updates the {@link #view_screen} render mode.
      */
     private void tabChanged(){
         view_screen.setRenderMode(control_panel.getSelectedIndex());
@@ -657,9 +663,9 @@ public class MainWindow extends JFrame{
      
     //<editor-fold defaultstate="collapsed" desc="SECM event methods">
     /**
-     * Triggered when <code>secm_open_button</code> is pressed.
-     * Launches a <code>JFileChooser</code> and reads the selected file into an 
-     * <code>SECMImage</code> which gets sent to the <code>view_screen</code>.
+     * Triggered when {@link #secm_open_button} is pressed.
+     * Launches a {@link JFileChooser} and reads the selected file into an 
+     * {@link SECMImage} which gets sent to the {@link #view_screen}.
      */
     private void secmOpen(){
         FileFilter ff = new FileNameExtensionFilter( "Text files", "txt");
@@ -677,6 +683,7 @@ public class MainWindow extends JFrame{
     /**
      * Triggered when the user changes the distance units selection for the SECM image.
      * @param e the triggering event (not currently used)
+     * @see #secm_distance_units
      */
     private void secmDistanceUnitsChange(ActionEvent e){
         int selection = secm_distance_units.getSelectedIndex();
@@ -689,6 +696,7 @@ public class MainWindow extends JFrame{
     /**
      * Triggered when the user changes the current units selection for the SECM image.
      * @param e the triggering event (not currently used)
+     * @see secm_current_units
      */
     private void secmCurrentUnitsChange(ActionEvent e){
         int selection = secm_current_units.getSelectedIndex();
@@ -700,9 +708,9 @@ public class MainWindow extends JFrame{
     
     //<editor-fold defaultstate="collapsed" desc="SEM event methods">
     /**
-     * Triggered when <code>sem_open_button</code> is pressed.
-     * Launches a <code>JFileChooser</code> and reads the selected file into an 
-     * <code>SEMImage</code> which gets sent to the <code>view_screen</code>.
+     * Triggered when {@link #sem_open_button} is pressed.
+     * Launches a {@link JFileChooser} and reads the selected file into an 
+     * {@link SEMImage} which gets sent to the {@link #view_screen}.
      */
     private void semOpen(){
         FileFilter ff = new FileNameExtensionFilter( "TIFF", "tif", "tiff");
@@ -719,8 +727,8 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggered when the state of the <code>sem_transparency</code> slider is changed,
-     * sending the new transparency information on to the <code>view_screen</code>.
+     * Triggered when the state of the {@link #sem_transparency} slider is changed,
+     * sending the new transparency information on to the {@link #view_screen}.
      * @param e the triggering event (not currently used)
      */
     private void semTransparencyChanged(ChangeEvent e){
@@ -728,8 +736,8 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggered when the user presses a key when focussing on the <code>sem_scale_field</code>.
-     * If the value of the field is a valid double that is <code>>=0</code>, then the value is written to <code>sem_scale_accepted</code> and sent to the <code>view_screen</code>.
+     * Triggered when the user presses a key when focussing on the {@link #sem_scale_field}.
+     * If the value of the field is a valid double that is <code>>=0</code>, then the value is written to {@link #sem_scale_accepted} and sent to the {@link #view_screen}.
      * If the value is invalid, then the input is ignored for now.
      * @param e the triggering event (not currently used)
      */
@@ -748,9 +756,9 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the user moves focus away from <code>sem_scale_field</code>.
-     * If the value of the field is a valid double that is <code>>=0</code>, then the value is written to <code>sem_scale_accepted</code> and sent to the <code>view_screen</code>.
-     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a <code>JOptionPane</code>.
+     * Triggered when the user moves focus away from {@link #sem_scale_field}.
+     * If the value of the field is a valid double that is <code>>=0</code>, then the value is written to {@link #sem_scale_accepted} and sent to the {@link #view_screen}.
+     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a {@link JOptionPane}.
      */
     private void semScaleFieldFocusLost(){
         try{
@@ -770,8 +778,8 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the <code>sem_scale_units</code> selection is changed.
-     * This does not affect the value of the <code>sem_scale_accepted</code> field, but does change the text of <code>sem_scale_field</code> to reflect the new unit.
+     * Triggered when the {@link #sem_scale_units} selection is changed.
+     * This does not affect the value of the {@link #sem_scale_accepted} field, but does change the text of {@link #sem_scale_field} to reflect the new unit.
      */
     private void semScaleUnitsChanged(){
         double reso_fact = SETTINGS.UNITS_RESOLUTION[sem_scale_units.getSelectedIndex()].getFactor();
@@ -780,8 +788,8 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggered when the user presses a key when focussing on the <code>sem_xoffset_field</code>.
-     * If the value of the field is a valid double that is <code>>=0</code>, then the value is written to <code>sem_xoffs_accepted</code> and sent to the <code>view_screen</code>.
+     * Triggered when the user presses a key when focussing on the {@link #sem_xoffset_field}.
+     * If the value of the field is a valid double that is <code>>=0</code>, then the value is written to {@link #sem_xoffs_accepted} and sent to the {@link #view_screen}.
      * If the value is invalid, then the input is ignored for now.
      * @param e the triggering event (not currently used)
      */
@@ -797,9 +805,9 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the user moves focus away from <code>sem_xoffset_field</code>.
-     * If the value of the field is a valid double that is <code>>=0</code>, then the value is written to <code>sem_xoffs_accepted</code> and sent to the <code>view_screen</code>.
-     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a <code>JOptionPane</code>.
+     * Triggered when the user moves focus away from {@link #sem_xoffset_field}.
+     * If the value of the field is a valid double that is <code>>=0</code>, then the value is written to {@link #sem_xoffs_accepted} and sent to the {@link #view_screen}.
+     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a {@link JOptionPane}.
      */
     private void semXOffsFieldFocusLost(){
         try{
@@ -816,8 +824,8 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the <code>sem_xoffset_units</code> selection is changed.
-     * This does not affect the value of the <code>sem_xoffs_accepted</code> field, but does change the text of <code>sem_xoffset_field</code> to reflect the new unit.
+     * Triggered when the {@link #sem_xoffset_units} selection is changed.
+     * This does not affect the value of the {@link #sem_xoffs_accepted} field, but does change the text of {@link #sem_xoffset_field} to reflect the new unit.
      */
     private void semXOffsUnitsChanged(){
         double reso_fact = SETTINGS.UNITS_DISTANCE[sem_xoffset_units.getSelectedIndex()].getFactor();
@@ -826,8 +834,8 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggered when the user presses a key when focussing on the <code>sem_yoffset_field</code>.
-     * If the value of the field is a valid double, then the value is written to <code>sem_yoffs_accepted</code> and sent to the <code>view_screen</code>.
+     * Triggered when the user presses a key when focussing on the {@link #sem_yoffset_field}.
+     * If the value of the field is a valid double, then the value is written to {@link #sem_yoffs_accepted} and sent to the {@link #view_screen}.
      * If the value is invalid, then the input is ignored for now.
      * @param e the triggering event (not currently used)
      */
@@ -843,9 +851,9 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the user moves focus away from <code>sem_yoffset_field</code>.
-     * If the value of the field is a valid double, then the value is written to <code>sem_yoffs_accepted</code> and sent to the <code>view_screen</code>.
-     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a <code>JOptionPane</code>.
+     * Triggered when the user moves focus away from {@link #sem_yoffset_field}.
+     * If the value of the field is a valid double, then the value is written to {@link #sem_yoffs_accepted} and sent to the {@link #view_screen}.
+     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a {@link JOptionPane}.
      */
     private void semYOffsFieldFocusLost(){
         try{
@@ -862,8 +870,8 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the <code>sem_yoffset_units</code> selection is changed.
-     * This does not affect the value of the <code>sem_yoffs_accepted</code> field, but does change the text of <code>sem_yoffset_field</code> to reflect the new unit.
+     * Triggered when the {@link #sem_yoffset_units} selection is changed.
+     * This does not affect the value of the {@link #sem_yoffs_accepted} field, but does change the text of {@link #sem_yoffset_field} to reflect the new unit.
      */
     private void semYOffsUnitsChanged(){
         double reso_fact = SETTINGS.UNITS_DISTANCE[sem_yoffset_units.getSelectedIndex()].getFactor();
@@ -872,8 +880,8 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggered when the user presses a key when focussing on the <code>sem_rotation_field</code>.
-     * If the value of the field is a valid double, then the value is written to <code>sem_rotation_accepted</code> and sent to the <code>view_screen</code>.
+     * Triggered when the user presses a key when focussing on the {@link #sem_rotation_field}.
+     * If the value of the field is a valid double, then the value is written to {@link #sem_rotation_accepted} and sent to the {@link #view_screen}.
      * If the value is invalid, then the input is ignored for now.
      * @param e the triggering event (not currently used)
      */
@@ -888,9 +896,9 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the user moves focus away from <code>sem_rotation_field</code>.
-     * If the value of the field is a valid double, then the value is written to <code>sem_rotation_accepted</code> and sent to the <code>view_screen</code>.
-     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a <code>JOptionPane</code>.
+     * Triggered when the user moves focus away from {@link #sem_rotation_field}.
+     * If the value of the field is a valid double, then the value is written to {@link #sem_rotation_accepted} and sent to the {@link #view_screen}.
+     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a {@link JOptionPane}.
      */
     private void semRotationFieldFocusLost(){
         try{
@@ -906,16 +914,16 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggers when the state of <code>sem_mirrorx</code> changes.
-     * Sends the new state to the <code>view_screen</code>.
+     * Triggers when the state of {@link #sem_mirrorx} changes.
+     * Sends the new state to the {@link #view_screen}.
      */
     private void semMirrorXClicked(){
         boolean state = sem_mirrorx.isSelected();
         view_screen.setSEMMirrorX(state);
     }
     /**
-     * Triggers when the state of <code>sem_mirrory</code> changes.
-     * Sends the new state to the <code>view_screen</code>.
+     * Triggers when the state of {@link #sem_mirrory} changes.
+     * Sends the new state to the {@link #view_screen}.
      */
     private void semMirrorYClicked(){
         boolean state = sem_mirrory.isSelected();
@@ -925,8 +933,8 @@ public class MainWindow extends JFrame{
     
     //<editor-fold defaultstate="collapsed" desc="Reactivity event methods">
     /**
-     * Triggered when the user presses a key when focussing on the <code>reac_xres_field</code>.
-     * If the value of the field is a valid double that is <code>>=0</code>, then the value is written to <code>reac_xresolution_accepted</code> and sent to the <code>view_screen</code>.
+     * Triggered when the user presses a key when focussing on the {@link #reac_xres_field}.
+     * If the value of the field is a valid double that is <code>>=0</code>, then the value is written to {@link #reac_xresolution_accepted} and sent to the {@link #view_screen}.
      * If the value is invalid, then the input is ignored for now.
      * @param e the triggering event (not currently used)
      */
@@ -945,9 +953,9 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the user moves focus away from <code>reac_xres_field</code>.
-     * If the value of the field is a valid double, then the value is written to <code>reac_xresolution_accepted</code> and sent to the <code>view_screen</code>.
-     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a <code>JOptionPane</code>.
+     * Triggered when the user moves focus away from {@link #reac_xres_field}.
+     * If the value of the field is a valid double, then the value is written to {@link #reac_xresolution_accepted} and sent to the {@link #view_screen}.
+     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a {@link JOptionPane}.
      */
     private void reacXResolutionFieldFocusLost(){
         try{
@@ -967,8 +975,8 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the <code>reac_xres_units</code> selection is changed.
-     * This does not affect the value of the <code>reac_xresolution_accepted</code> field, but does change the text of <code>reac_xres_field</code> to reflect the new unit.
+     * Triggered when the {@link #reac_xres_units} selection is changed.
+     * This does not affect the value of the {@link #reac_xresolution_accepted} field, but does change the text of {@link #reac_xres_field} to reflect the new unit.
      */
     private void reacXResolutionUnitsChanged(){
         double reso_fact = SETTINGS.UNITS_DISTANCE[reac_xres_units.getSelectedIndex()].getFactor();
@@ -977,8 +985,8 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggered when the user presses a key when focussing on the <code>reac_xres_field</code>.
-     * If the value of the field is a valid double that is <code>>=0</code>, then the value is written to <code>reac_xresolution_accepted</code> and sent to the <code>view_screen</code>.
+     * Triggered when the user presses a key when focussing on the {@link #reac_xres_field}.
+     * If the value of the field is a valid double that is <code>>=0</code>, then the value is written to {@link #reac_xresolution_accepted} and sent to the {@link #view_screen}.
      * If the value is invalid, then the input is ignored for now.
      * @param e the triggering event (not currently used)
      */
@@ -997,9 +1005,9 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the user moves focus away from <code>reac_xres_field</code>.
-     * If the value of the field is a valid double, then the value is written to <code>reac_xresolution_accepted</code> and sent to the <code>view_screen</code>.
-     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a <code>JOptionPane</code>.
+     * Triggered when the user moves focus away from {@link #reac_xres_field}.
+     * If the value of the field is a valid double, then the value is written to {@link #reac_xresolution_accepted} and sent to the {@link #view_screen}.
+     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a {@link JOptionPane}.
      */
     private void reacYResolutionFieldFocusLost(){
         try{
@@ -1019,8 +1027,8 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the <code>reac_xres_units</code> selection is changed.
-     * This does not affect the value of the <code>reac_xresolution_accepted</code> field, but does change the text of <code>reac_xres_field</code> to reflect the new unit.
+     * Triggered when the {@link #reac_xres_units} selection is changed.
+     * This does not affect the value of the {@link #reac_xresolution_accepted} field, but does change the text of {@link #reac_xres_field} to reflect the new unit.
      */
     private void reacYResolutionUnitsChanged(){
         double reso_fact = SETTINGS.UNITS_DISTANCE[reac_yres_units.getSelectedIndex()].getFactor();
@@ -1029,8 +1037,8 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggers when the state of <code>reac_grid</code> changes.
-     * Sends the new state to the <code>view_screen</code>.
+     * Triggers when the state of {@link #reac_grid} changes.
+     * Sends the new state to the {@link #view_screen}.
      */
     private void reacShowGridChecked(){
         boolean state = reac_grid.isSelected();
@@ -1038,16 +1046,16 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggered when the state of the <code>reac_semtransparency</code> slider is changed,
-     * sending the new transparency information on to the <code>view_screen</code>.
+     * Triggered when the state of the {@link #reac_semtransparency} slider is changed,
+     * sending the new transparency information on to the {@link #view_screen}.
      * @param e the triggering event (not currently used)
      */
     private void reacSemTransparencyChanged(ChangeEvent e){
         view_screen.setReactivitySEMTransparency((float)(reac_semtransparency.getValue())*0.01f);
     }
     /**
-     * Triggered when the state of the <code>reac_seltransparency</code> slider is changed,
-     * sending the new transparency information on to the <code>view_screen</code>.
+     * Triggered when the state of the {@link #reac_seltransparency} slider is changed,
+     * sending the new transparency information on to the {@link #view_screen}.
      * @param e the triggering event (not currently used)
      */
     private void reacSelectTransparencyChanged(ChangeEvent e){
@@ -1055,18 +1063,22 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggered when <code>reac_detect_edges</code> is pressed.
-     * Spawns an instance of the <code>EdgeDetectionWindow</code>
+     * Triggered when {@link #reac_detect_edges} is pressed.
+     * Spawns an instance of the {@link #EdgeDetectionWindow}.
      */
     private void reacDetectEdgesPressed(){
-        EdgeDetectionWindow edw = new EdgeDetectionWindow(view_screen);
-        edw.setVisible(true);
+        try {
+            EdgeDetectionWindow edw = new EdgeDetectionWindow(view_screen);
+            edw.setVisible(true);
+        } catch (IOException ex) {
+            
+        }
     }
     
     /**
-     * Triggered when <code>reac_pencil</code> is pressed.
-     * Sends the new tool information to the <code>view_screen</code> and updates the <code>reac_tool_select</code> label.
-     * <code>reac_pencil</code> is disabled and the other tool buttons are enabled.
+     * Triggered when {@link #reac_pencil} is pressed.
+     * Sends the new tool information to the {@link #view_screen} and updates the {@link #reac_tool_select} label.
+     * {@link #reac_pencil} is disabled and the other tool buttons are enabled.
      */
     private void pencilSelect(){
         reac_pencil.setEnabled(false);
@@ -1076,9 +1088,9 @@ public class MainWindow extends JFrame{
         view_screen.setReactivityTool(Visualizer.PENCIL);
     }
     /**
-     * Triggered when <code>reac_crop</code> is pressed.
-     * Sends the new tool information to the <code>view_screen</code> and updates the <code>reac_tool_select</code> label.
-     * <code>reac_crop</code> is disabled and the other tool buttons are enabled.
+     * Triggered when {@link #reac_crop} is pressed.
+     * Sends the new tool information to the {@link #view_screen} and updates the {@link #reac_tool_select} label.
+     * {@link #reac_crop} is disabled and the other tool buttons are enabled.
      */
     private void cropSelect(){
         reac_pencil.setEnabled(true);
@@ -1088,9 +1100,9 @@ public class MainWindow extends JFrame{
         view_screen.setReactivityTool(Visualizer.CROP);
     }
     /**
-     * Triggered when <code>reac_fill</code> is pressed.
-     * Sends the new tool information to the <code>view_screen</code> and updates the <code>reac_tool_select</code> label.
-     * <code>reac_fill</code> is disabled and the other tool buttons are enabled.
+     * Triggered when {@link #reac_fill} is pressed.
+     * Sends the new tool information to the {@link #view_screen} and updates the {@link #reac_tool_select} label.
+     * {@link #reac_fill} is disabled and the other tool buttons are enabled.
      */
     private void fillSelect(){
         reac_pencil.setEnabled(true);
@@ -1103,8 +1115,8 @@ public class MainWindow extends JFrame{
     
     //<editor-fold defaultstate="collapsed" desc="Sampling event methods">
     /**
-     * Triggered when <code>sam_generate</code> is pressed.
-     * Prompts the user for a file name, then sends the file to the <code>view_screen</code> so that information can be written to it.
+     * Triggered when {@link #sam_generate} is pressed.
+     * Prompts the user for a file name, then sends the file to the {@link #view_screen} so that information can be written to it.
      */
     private void samGenerate(){
         try{
@@ -1134,8 +1146,8 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggered when the user presses a key when focussing on the <code>sam_xstart</code>.
-     * If the value of the field is a valid integer that is <code>>=0</code>, then the value is written to <code>sam_start_x_accepted</code> and sent to the <code>view_screen</code>.
+     * Triggered when the user presses a key when focussing on the {@link #sam_xstart}.
+     * If the value of the field is a valid integer that is <code>>=0</code>, then the value is written to {@link #sam_start_x_accepted} and sent to the {@link #view_screen}.
      * If the value is invalid, then the input is ignored for now.
      * @param e the triggering event (not currently used)
      */
@@ -1153,9 +1165,9 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the user moves focus away from <code>sam_xstart</code>.
-     * If the value of the field is a valid double, then the value is written to <code>sam_start_x_accepted</code> and sent to the <code>view_screen</code>.
-     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a <code>JOptionPane</code>.
+     * Triggered when the user moves focus away from {@link #sam_xstart}.
+     * If the value of the field is a valid double, then the value is written to {@link #sam_start_x_accepted} and sent to the {@link #view_screen}.
+     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a {@link JOptionPane}.
      */
     private void samStartXFieldFocusLost(){
         try{
@@ -1174,8 +1186,8 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggered when the user presses a key when focussing on the <code>sam_ystart</code>.
-     * If the value of the field is a valid integer that is <code>>=0</code>, then the value is written to <code>sam_start_y_accepted</code> and sent to the <code>view_screen</code>.
+     * Triggered when the user presses a key when focussing on the {@link #sam_ystart}.
+     * If the value of the field is a valid integer that is <code>>=0</code>, then the value is written to {@link #sam_start_y_accepted} and sent to the {@link #view_screen}.
      * If the value is invalid, then the input is ignored for now.
      * @param e the triggering event (not currently used)
      */
@@ -1193,9 +1205,9 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the user moves focus away from <code>sam_ystart</code>.
-     * If the value of the field is a valid double, then the value is written to <code>sam_start_y_accepted</code> and sent to the <code>view_screen</code>.
-     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a <code>JOptionPane</code>.
+     * Triggered when the user moves focus away from {@link #sam_ystart}.
+     * If the value of the field is a valid double, then the value is written to {@link #sam_start_y_accepted} and sent to the {@link #view_screen}.
+     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a {@link JOptionPane}.
      */
     private void samStartYFieldFocusLost(){
         try{
@@ -1214,8 +1226,8 @@ public class MainWindow extends JFrame{
     }
    
     /**
-     * Triggered when the user presses a key when focussing on the <code>sam_xsize</code>.
-     * If the value of the field is a valid integer that is <code>>=0</code>, then the value is written to <code>sam_step_size_x_accepted</code> and sent to the <code>view_screen</code>.
+     * Triggered when the user presses a key when focussing on the {@link #sam_xsize}.
+     * If the value of the field is a valid integer that is <code>>=0</code>, then the value is written to {@link #sam_step_size_x_accepted} and sent to the {@link #view_screen}.
      * If the value is invalid, then the input is ignored for now.
      * @param e the triggering event (not currently used)
      */
@@ -1233,9 +1245,9 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the user moves focus away from <code>sam_xsize</code>.
-     * If the value of the field is a valid double, then the value is written to <code>sam_step_size_x_accepted</code> and sent to the <code>view_screen</code>.
-     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a <code>JOptionPane</code>.
+     * Triggered when the user moves focus away from {@link #sam_xsize}.
+     * If the value of the field is a valid double, then the value is written to {@link #sam_step_size_x_accepted} and sent to the {@link #view_screen}.
+     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a {@link JOptionPane}.
      */
     private void samStepSizeXFieldFocusLost(){
         try{
@@ -1254,8 +1266,8 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggered when the user presses a key when focussing on the <code>sam_ysize</code>.
-     * If the value of the field is a valid integer that is <code>>=0</code>, then the value is written to <code>sam_step_size_y_accepted</code> and sent to the <code>view_screen</code>.
+     * Triggered when the user presses a key when focussing on the {@link #sam_ysiz}.
+     * If the value of the field is a valid integer that is <code>>=0</code>, then the value is written to {@link #sam_step_size_y_accepted} and sent to the {@link #view_screen}.
      * If the value is invalid, then the input is ignored for now.
      * @param e the triggering event (not currently used)
      */
@@ -1273,9 +1285,9 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the user moves focus away from <code>sam_ysize</code>.
-     * If the value of the field is a valid double, then the value is written to <code>sam_step_size_y_accepted</code> and sent to the <code>view_screen</code>.
-     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a <code>JOptionPane</code>.
+     * Triggered when the user moves focus away from {@link #sam_ysize}.
+     * If the value of the field is a valid double, then the value is written to {@link #sam_step_size_y_accepted} and sent to the {@link #view_screen}.
+     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a {@link JOptionPane}.
      */
     private void samStepSizeYFieldFocusLost(){
         try{
@@ -1294,8 +1306,8 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggered when the user presses a key when focussing on the <code>sam_xsteps</code>.
-     * If the value of the field is a valid integer that is <code>>=0</code>, then the value is written to <code>sam_num_steps_x_accepted</code> and sent to the <code>view_screen</code>.
+     * Triggered when the user presses a key when focussing on the {@link #sam_xsteps}.
+     * If the value of the field is a valid integer that is <code>>=0</code>, then the value is written to {@link #sam_num_steps_x_accepted} and sent to the {@link #view_screen}.
      * If the value is invalid, then the input is ignored for now.
      * @param e the triggering event (not currently used)
      */
@@ -1313,9 +1325,9 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the user moves focus away from <code>sam_xsteps</code>.
-     * If the value of the field is a valid double, then the value is written to <code>sam_num_steps_x_accepted</code> and sent to the <code>view_screen</code>.
-     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a <code>JOptionPane</code>.
+     * Triggered when the user moves focus away from {@link #sam_xsteps}.
+     * If the value of the field is a valid double, then the value is written to {@link #sam_num_steps_x_accepted} and sent to the {@link #view_screen}.
+     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a {@link JOptionPane}.
      */
     private void samNumStepsXFieldFocusLost(){
         try{
@@ -1334,8 +1346,8 @@ public class MainWindow extends JFrame{
     }
     
     /**
-     * Triggered when the user presses a key when focussing on the <code>sam_ysteps</code>.
-     * If the value of the field is a valid integer that is <code>>=0</code>, then the value is written to <code>sam_num_steps_y_accepted</code> and sent to the <code>view_screen</code>.
+     * Triggered when the user presses a key when focussing on the {@link #sam_ysteps}.
+     * If the value of the field is a valid integer that is <code>>=0</code>, then the value is written to {@link #sam_num_steps_y_accepted} and sent to the {@link #view_screen}.
      * If the value is invalid, then the input is ignored for now.
      * @param e the triggering event (not currently used)
      */
@@ -1353,9 +1365,9 @@ public class MainWindow extends JFrame{
         }
     }
     /**
-     * Triggered when the user moves focus away from <code>sam_ysteps</code>.
-     * If the value of the field is a valid double, then the value is written to <code>sam_num_steps_y_accepted</code> and sent to the <code>view_screen</code>.
-     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a <code>JOptionPane</code>.
+     * Triggered when the user moves focus away from {@link #sam_ysteps}.
+     * If the value of the field is a valid double, then the value is written to {@link #sam_num_steps_y_accepted} and sent to the {@link #view_screen}.
+     * If the value is invalid, then the input is reverted to the last accepted value and the user is notified of the input restrictions via a {@link JOptionPane}.
      */
     private void samNumStepsYFieldFocusLost(){
         try{
@@ -1376,53 +1388,51 @@ public class MainWindow extends JFrame{
         
     //Setters
     /**
-     * Called by the <code>view_screen</code> when the user rotates the SEM image.
-     * The rotation is rounded to <code>SIGFIGS</code> significant digits.
-     * <code>sem_rotation_field</code> and <code>sem_rotation_accepted</code> are updated to reflect the new value.
+     * Called by the {@link #view_screen} when the user rotates the SEM image.
+     * The rotation is rounded to {@link #SIGFIGS} significant digits.
+     * {@link #sem_rotation_field} and {@link #sem_rotation_accepted} are updated to reflect the new value.
      * @param rotation The rotation of the SEM image in degrees.
+     * @see Visualizer#semMouseDrag(java.awt.event.MouseEvent) 
+     * @see Visualizer#cancelRotation() 
      */
     public void setSEMRotationField(double rotation){
-        BigDecimal bd = new BigDecimal(rotation);
-        bd = bd.round(new MathContext(SIGFIGS));
-        rotation = bd.doubleValue();
+        rotation = roundToSF(rotation);
         sem_rotation_field.setText(rotation + "");
         sem_rotation_accepted = rotation;
     }
     
     /**
-     * Called by the <code>view_screen</code> when the user moves the SEM image.
-     * The x-offset is rounded to <code>SIGFIGS</code> significant digits.
-     * <code>sem_xoffset_field</code> and <code>sem_xoffs_accepted</code> are updated to reflect the new value.
+     * Called by the {@link #view_screen} when the user moves the SEM image.
+     * The x-offset is rounded to {@link #SIGFIGS} significant digits.
+     * {@link #sem_xoffset_field} and {@link #sem_xoffs_accepted} are updated to reflect the new value.
      * @param xoffs The x-offset of the SEM image in metres.
+     * @see Visualizer#semMouseDrag(java.awt.event.MouseEvent) 
+     * @see Visualizer#cancelPan() 
      */
     public void setSEMXOffsetField(double xoffs){
         double reso_fact = SETTINGS.UNITS_DISTANCE[sem_xoffset_units.getSelectedIndex()].getFactor();
-        double display = xoffs / reso_fact;
-        BigDecimal bd = new BigDecimal(display);
-        bd = bd.round(new MathContext(SIGFIGS));
-        display = bd.doubleValue();
+        double display = roundToSF(xoffs / reso_fact);
         sem_xoffset_field.setText(display + "");
         sem_xoffs_accepted = xoffs;
     }
     
     /**
-     * Called by the <code>view_screen</code> when the user moves the SEM image.
-     * The y-offset is rounded to <code>SIGFIGS</code> significant digits.
-     * <code>sem_yoffset_field</code> and <code>sem_yoffs_accepted</code> are updated to reflect the new value.
+     * Called by the {@link #view_screen} when the user moves the SEM image.
+     * The y-offset is rounded to {@link #SIGFIGS} significant digits.
+     * {@link #sem_yoffset_field} and {@link #sem_yoffs_accepted} are updated to reflect the new value.
      * @param yoffs The y-offset of the SEM image in metres.
+     * @see Visualizer#semMouseDrag(java.awt.event.MouseEvent) 
+     * @see Visualizer#cancelPan() 
      */
     public void setSEMYOffsetField(double yoffs){
         double reso_fact = SETTINGS.UNITS_DISTANCE[sem_yoffset_units.getSelectedIndex()].getFactor();
-        double display = yoffs / reso_fact;
-        BigDecimal bd = new BigDecimal(display);
-        bd = bd.round(new MathContext(SIGFIGS));
-        display = bd.doubleValue();
+        double display = roundToSF(yoffs / reso_fact);
         sem_yoffset_field.setText(display + "");
         sem_yoffs_accepted = yoffs;
     }
     
     /**
-     * Called by the <code>view_screen</code> when the user's mouse moves over it.
+     * Called by the {@link #view_screen} when the user's mouse moves over it.
      * @param x_pos The x-position of the mouse in metres
      * @param y_pos The y-position of the mouse in metres
      * @param x_index The x-index of the reactivity grid-section that the mouse is over
@@ -1430,10 +1440,10 @@ public class MainWindow extends JFrame{
      * @param informationMode The type of information to be displayed, which can change depending on the render mode.
      * The options are:
      * <ul>
-     * <li><code>POSITION_INFO_NONE</code>:</li> Do not display any coordinate information.
-     * <li><code>POSITION_INFO_TRUE</code>:</li> Only display the mouse position in real units.
-     * <li><code>POSITION_INFO_TRUE_AND_INDEX</code>:</li> Display both the mouse position in real units and in reactivity grid-section indices.
-     * <li><code>POSITION_INFO_INDEX</code>:</li> Only display the reactivity grid-section indices.
+     * <li>{@link #POSITION_INFO_NONE}:</li> Do not display any coordinate information.
+     * <li>{@link #POSITION_INFO_TRUE}:</li> Only display the mouse position in real units.
+     * <li>{@link #POSITION_INFO_TRUE_AND_INDEX}:</li> Display both the mouse position in real units and in reactivity grid-section indices.
+     * <li>{@link #POSITION_INFO_INDEX}:</li> Only display the reactivity grid-section indices.
      * </ul>
      */
     public void updatePositionIndicator(double x_pos, double y_pos, int x_index, int y_index, int informationMode){
@@ -1464,6 +1474,17 @@ public class MainWindow extends JFrame{
                 position_indicator.setText("");
                 break;
         }
+    }
+    
+    /**
+     * Rounds the input to {@link #SIGFIGS} significant figures and returns the result.
+     * @param input the value to be rounded
+     * @return the rounded value
+     */
+    private static double roundToSF(double input){
+        BigDecimal bd = new BigDecimal(input);
+        bd = bd.round(new MathContext(SIGFIGS));
+        return bd.doubleValue();
     }
     
     //Fields
@@ -1531,48 +1552,172 @@ public class MainWindow extends JFrame{
 
     //Widgets
     //SECM
+    /**
+     * The button that allows the user to select an SECM image to open when pressed.
+     */
     JButton secm_open_button;
+    /**
+     * A component allowing the user to select the units of distance expressed by the SECM image.
+     * @see Settings#UNITS_DISTANCE
+     */
     JComboBox secm_distance_units;
+    /**
+     * A component allowing the user to select the units of current expressed by the SECM image.
+     * @see Settings#UNITS_CURRENT
+     */
     JComboBox secm_current_units;
+    /**
+     * A label that displays the filename of the selected SECM image.
+     */
     JLabel secm_file_field;
+    
     //SEM
+    /**
+     * The button that allows the user to select an SEM image to open when pressed.
+     */
     JButton sem_open_button;
+    /**
+     * A label that displays the filename of the selected SEM image.
+     */
     JLabel sem_file_field;
+    /**
+     * A text field allowing the user to specify the scale of the SEM image in pixels/unit of length
+     */
     JTextField sem_scale_field;
+    /**
+     * A component allowing the user to select the units of distance expressed by {@link #sem_scale_field}.
+     * @see Settings#UNITS_RESOLUTION
+     */
     JComboBox sem_scale_units;
+    /**
+     * A text field allowing the user to specify the by how much the SEM image should be moved in the x-direction to line-up with the SECM image.
+     */
     JTextField sem_xoffset_field;
+    /**
+     * A component allowing the user to select the units of distance expressed by {@link #sem_xoffset_field}.
+     * @see Settings#UNITS_DISTANCE
+     */
     JComboBox sem_xoffset_units;
+    /**
+     * A text field allowing the user to specify the by how much the SEM image should be moved in the y-direction to line-up with the SECM image.
+     */
     JTextField sem_yoffset_field;
+    /**
+     * A component allowing the user to select the units of distance expressed by {@link #sem_yoffset_field}.
+     * @see Settings#UNITS_DISTANCE
+     */
     JComboBox sem_yoffset_units;
+    /**
+     * A text field allowing the user to specify the by how much the SEM image should be CW rotated in degrees to line-up with the SECM image.
+     */
     JTextField sem_rotation_field;
+    /**
+     * A slider allowing the user to specify the transparency of the SEM image as it is rendered in front of the SECM image.
+     */
     JSlider sem_transparency;
+    /**
+     * Checkbox that allows the user to toggle mirroring of the SEM image along the x-axis
+     */
     JCheckBox sem_mirrorx;
+    /**
+     * Checkbox that allows the user to toggle mirroring of the SEM image along the y-axis
+     */
     JCheckBox sem_mirrory;
+    
     //Reactivity
+    /**
+     * Label that displays the selected tool to the user
+     */
     JLabel reac_tool_select;
+    /**
+     * A text field allowing the user to specify the by how wide a pixel in the reactivity grid should be.
+     */
     JTextField reac_xres_field;
+    /**
+     * A component allowing the user to select the units of distance expressed by {@link #reac_xres_field}.
+     * @see Settings#UNITS_DISTANCE
+     */
     JComboBox reac_xres_units;
+    /**
+     * A text field allowing the user to specify the by how tall a pixel in the reactivity grid should be.
+     */
     JTextField reac_yres_field;
+    /**
+     * A component allowing the user to select the units of distance expressed by {@link #reac_yres_field}.
+     * @see Settings#UNITS_DISTANCE
+     */
     JComboBox reac_yres_units;
+    /**
+     * A button that switches the active tool to cropping when pressed.
+     */
     JButton reac_crop;
+    /**
+     * A button that switches the active tool to pencil when pressed.
+     */
     JButton reac_pencil;
+    /**
+     * A button that switches the active tool to the fill tool when pressed.
+     */
     JButton reac_fill;
+    /**
+     * A checkbox that allows the user to toggle an outline for the reactivity grid on and off.
+     */
     JCheckBox reac_grid;
+    /**
+     * A slider to modify the transparency of the SEM image.
+     */
     JSlider reac_semtransparency;
+    /**
+     * A slider to modify the transparency of the reactivity grid.
+     */
     JSlider reac_seltransparency;
+    /**
+     * A button that generates an {@link EdgeDetectionWindow} for potentially quickly identifying edges in the image.
+     */
     JButton reac_detect_edges;
+    
     //Sampling
+    /**
+     * A field for the user to specify the starting x-index of an image simulation.
+     */
     JTextField sam_xstart;
+    /**
+     * A field for the user to specify the starting y-index of an image simulation.
+     */
     JTextField sam_ystart;
+    /**
+     * A field for the user to specify the size of a step in the x-direction of an image simulation.
+     */
     JTextField sam_xsize;
+    /**
+     * A field for the user to specify the size of a step in the y-direction of an image simulation.
+     */
     JTextField sam_ysize;
+    /**
+     * A field for the user to specify the number of steps in the x-direction of an image simulation.
+     */
     JTextField sam_xsteps;
+    /**
+     * A field for the user to specify the number of steps in the y-direction of an image simulation.
+     */
     JTextField sam_ysteps;
+    /**
+     * A button for generating an instruction file for a simulation of an SECM image using the user-determined reactivity grid.
+     */
     JButton sam_generate;
     
     //Global
+    /**
+     * The component responsible for displaying the SECM, SEM, reactivity and/or sampling images.
+     */
     Visualizer view_screen;
+    /**
+     * Indicates the position of the user's mouse cursor in terms of various units relevant to the type of image that is being displayed.
+     */
     JLabel position_indicator;
+    /**
+     * Tabbed component containing the bulk of the user inputs for the program, divided in terms of the type of image with which the user is interacting.
+     */
     JTabbedPane control_panel;
     
     //Statics
@@ -1582,7 +1727,7 @@ public class MainWindow extends JFrame{
      */
     private static final int FIELD_PAD = 50;
     /**
-     * The padding around most components, unless <code>FIELD_PAD</code> or <code>SPACER_PAD</code> is used instead.
+     * The padding around most components, unless {@link #FIELD_PAD} or {@link #SPACER_PAD} is used instead.
      */
     private static final int DEFAULT_PAD = 3;
     /**
@@ -1592,7 +1737,8 @@ public class MainWindow extends JFrame{
     
     //significant figures
     /**
-     * The significant figures to be used when values from the <code>view_screen</code> are reported.
+     * The significant figures to be used when values from the {@link #view_screen} are reported.
+     * @see #roundToSF(double) 
      */
     private static final int SIGFIGS = 5;
     

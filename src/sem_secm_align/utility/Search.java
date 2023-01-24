@@ -6,7 +6,7 @@
 package sem_secm_align.utility;
 
 /**
- *
+ * A class containing functions for searching lists efficiently.
  * @author Nathaniel
  */
 public class Search {

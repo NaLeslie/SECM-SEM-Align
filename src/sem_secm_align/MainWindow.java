@@ -1,6 +1,6 @@
 /*
  * Created: 2022-01-14
- * Updated: 2022-06-22
+ * Updated: 2023-04-06
  * Nathaniel Leslie
  */
 package sem_secm_align;
@@ -35,6 +35,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import sem_secm_align.data_types.SECMImage;
 import sem_secm_align.data_types.SEMImage;
 import sem_secm_align.data_types.Unit;
+import sem_secm_align.edge_detection.MorphologicalTransformationDialog;
 import sem_secm_align.settings.Settings;
 
 /**
@@ -431,12 +432,28 @@ public class MainWindow extends JFrame{
         c.gridy = 1;
         reactivity_tab.add(reac_gtgroup, c);
         
-        c.gridy=2;
+        JPanel reac_edgegroup = new JPanel(new GridBagLayout());
+        
+        c.gridy = 0;
         reac_detect_edges = new JButton("Detect edges");
         reac_detect_edges.addActionListener((ActionEvent e) -> {
             reacDetectEdgesPressed();
         });
-        reactivity_tab.add(reac_detect_edges,c);
+        reac_edgegroup.add(reac_detect_edges,c);
+        
+//        c.gridx = 1;
+//        reac_edgegroup.add(new JLabel(""),c);
+        
+        c.gridx = 1;
+        reac_morph_transform = new JButton("Morphological operation");
+        reac_morph_transform.addActionListener((ActionEvent e) -> {
+            reacMorphologicalTransformPressed();
+        });
+        reac_edgegroup.add(reac_morph_transform,c);
+        
+        c.gridx = 0;
+        c.gridy = 2;
+        reactivity_tab.add(reac_edgegroup,c);
         
         c.gridy=3;
         reac_tool_select = new JLabel("Active tool: pencil");
@@ -688,7 +705,7 @@ public class MainWindow extends JFrame{
     private void secmDistanceUnitsChange(ActionEvent e){
         int selection = secm_distance_units.getSelectedIndex();
         if(selection > -1){
-            secm_distance_unit = SETTINGS.UNITS_CURRENT[selection];
+            secm_distance_unit = SETTINGS.UNITS_DISTANCE[selection];
             view_screen.setSECMScale(secm_distance_unit.getFactor());
         }
     }
@@ -1070,6 +1087,18 @@ public class MainWindow extends JFrame{
         try {
             EdgeDetectionWindow edw = new EdgeDetectionWindow(view_screen);
             edw.setVisible(true);
+        } catch (IOException ex) {
+            
+        }
+    }
+    /**
+     * Triggered when {@link #reac_morph_transform} is pressed.
+     * Spawns an instance of {@link MorphologicalTransformationDialog}
+     */
+    private void reacMorphologicalTransformPressed(){
+        try {
+            MorphologicalTransformationDialog mtw = new MorphologicalTransformationDialog(view_screen);
+            mtw.setVisible(true);
         } catch (IOException ex) {
             
         }
@@ -1457,13 +1486,13 @@ public class MainWindow extends JFrame{
             case POSITION_INFO_TRUE:
                 x_pos /= factor;
                 y_pos /= factor;
-                text = String.format(" x: %1.2f %s, y: %1.2f %s", x_pos, unit_text, y_pos, unit_text);
+                text = String.format(" x: %1.2e %s, y: %1.2e %s", x_pos, unit_text, y_pos, unit_text);
                 position_indicator.setText(text);
                 break;
             case POSITION_INFO_TRUE_AND_INDEX:
                 x_pos /= factor;
                 y_pos /= factor;
-                text = String.format(" x: %1.2f %s index: %d, y: %1.2f %s index: %d", x_pos, unit_text, x_index, y_pos, unit_text, y_index);
+                text = String.format(" x: %1.2e %s index: %d, y: %1.2e %s index: %d", x_pos, unit_text, x_index, y_pos, unit_text, y_index);
                 position_indicator.setText(text);
                 break;
             case POSITION_INFO_INDEX:
@@ -1675,6 +1704,10 @@ public class MainWindow extends JFrame{
      * A button that generates an {@link EdgeDetectionWindow} for potentially quickly identifying edges in the image.
      */
     JButton reac_detect_edges;
+    /**
+     * A button that generates a {@link MorphologicalTransformationDialog} for repairing and/or cleaning-up detected edges in the image.
+     */
+    JButton reac_morph_transform;
     
     //Sampling
     /**

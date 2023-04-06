@@ -1,6 +1,6 @@
 /*
  * Created: 2022-01-14
- * Updated: 2023-01-23
+ * Updated: 2023-04-06
  * Nathaniel Leslie
  */
 package sem_secm_align;
@@ -28,9 +28,11 @@ import javax.swing.JPanel;
 import sem_secm_align.data_types.ImproperFileFormattingException;
 import sem_secm_align.data_types.SEMImage;
 import sem_secm_align.edge_detection.EdgeDetectionWindow;
+import sem_secm_align.edge_detection.MorphologicalTransformationDialog;
 import sem_secm_align.settings.ColourSettings;
 import sem_secm_align.settings.Settings;
 import static sem_secm_align.utility.ImageParser.bufferedImageToGrayscale;
+import sem_secm_align.utility.filters.BinaryFilter;
 
 /**
  * Handles rendering of the visualizing panel
@@ -1044,6 +1046,13 @@ public class Visualizer extends JPanel{
      */
     public void setSECMScale(double scale_factor){
         secm_scale_factor = scale_factor;
+        crop_x1 = secm_image.getXMin()*secm_scale_factor;
+        crop_x2 = secm_image.getXMax()*secm_scale_factor;
+        crop_y1 = secm_image.getYMin()*secm_scale_factor;
+        crop_y2 = secm_image.getYMax()*secm_scale_factor;
+        double xbins = Math.ceil((secm_image.getXMax() - secm_image.getXMin())/reac_xresolution*secm_scale_factor);
+        double ybins = Math.ceil((secm_image.getYMax() - secm_image.getYMin())/reac_yresolution*secm_scale_factor);
+        switches = new int[(int)xbins][(int)ybins];
         updateGraphics();
     }
     
@@ -1420,6 +1429,17 @@ public class Visualizer extends JPanel{
      * @see EdgeDetectionWindow#applyDetection() 
      */
     public void setSwitches(int[][] new_switches){
+        switches = new_switches;
+        updateGraphics();
+    }
+    
+    /**
+     * Applies the selected filter to the reactivity grid.
+     * @param filter The filter to be applied.
+     * @see MorphologicalTransformationDialog
+     */
+    public void filterSwitches(BinaryFilter filter){
+        int[][] new_switches = filter.applyFilter(switches);
         switches = new_switches;
         updateGraphics();
     }

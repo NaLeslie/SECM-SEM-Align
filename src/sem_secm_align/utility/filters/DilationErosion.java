@@ -82,7 +82,7 @@ public class DilationErosion {
      * @param y The y address
      * @return If x,y are in range of data[][], data[x][y] is returned. Otherwise, 0.0f is returned.
      */
-    private static int zeroPad(int[][] data, int x, int y){
+    public static int zeroPad(int[][] data, int x, int y){
         if(x >=0 && y >=0 && x < data.length && y < data[0].length){
             return data[x][y]; //return data if x and y have a "legal" value
         }

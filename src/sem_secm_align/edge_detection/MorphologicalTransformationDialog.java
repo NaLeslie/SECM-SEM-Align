@@ -1,6 +1,6 @@
 /*
  * Created: 2023-04-06
- * Updated: 2023-04-06
+ * Updated: 2023-05-10
  * Nathaniel Leslie
  */
 package sem_secm_align.edge_detection;
@@ -18,12 +18,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import sem_secm_align.Visualizer;
 import sem_secm_align.utility.filters.BinaryFilter;
-import sem_secm_align.utility.filters.Close3;
-import sem_secm_align.utility.filters.Close5;
-import sem_secm_align.utility.filters.Close7;
-import sem_secm_align.utility.filters.Open3;
-import sem_secm_align.utility.filters.Open5;
-import sem_secm_align.utility.filters.Open7;
+import sem_secm_align.utility.filters.Close;
+import sem_secm_align.utility.filters.CloseSpecial;
+import sem_secm_align.utility.filters.Open;
 
 /**
  * A dialog box that allows the user to perform morphological operations on the reactivity grid.
@@ -150,7 +147,7 @@ public class MorphologicalTransformationDialog extends JFrame{
     /**
      * The list of filters and their labels
      */
-    private BinaryFilter[] available_filters = new BinaryFilter[]{new Close3(), new Close5(), new Close7(), new Open3(), new Open5(), new Open7()};
+    private BinaryFilter[] available_filters = new BinaryFilter[]{new Close(3), new Close(5), new Close(7), new CloseSpecial(7), new Close(9), new CloseSpecial(9), new Close(11), new CloseSpecial(11), new Close(15), new CloseSpecial(15), new Open(3), new Open(5), new Open(7)};
     
     /**
      * The {@link Visualizer} element to which this window reports.

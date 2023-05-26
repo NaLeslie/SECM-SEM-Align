@@ -1,6 +1,6 @@
 /*
  * Created: 2023-01-11
- * Updated: 2023-01-13
+ * Updated: 2023-05-26
  * Nathaniel Leslie
  */
 package sem_secm_align.settings;
@@ -29,6 +29,7 @@ public class EdgeDetectionSettings {
      */
     public EdgeDetectionSettings() {
         DEFAULT_DISPLAY_MODE = 0;
+        DEFAULT_EDGE_DETECTOR = EDGE_DETECTOR_CANNY;
         DEFAULT_FILTER = 0;
         DEFAULT_IMAGE_SOURCE = 0;
         DOMAIN_SELECTION_COLOR = Color.LIGHT_GRAY;
@@ -39,6 +40,7 @@ public class EdgeDetectionSettings {
         AXES_COLOR = Color.BLACK;
         LABEL_FONT = new Font(Font.MONOSPACED, Font.PLAIN, 12);
         DISPLAY_OPTIONS = initDisplayList();
+        EDGE_DETECTOR_OPTIONS = initEdgeDetectorList();
         IMAGE_SOURCE_OPTIONS = initImageSourceList();
         FILTER_OPTIONS = new Filter[]{new Identity(), new Gauss3(), new Gauss5(), new Gauss7(), new Median3()};
         COLOR_MODE = ColourSettings.CSCALE_GREY_MAGENTAZERO;
@@ -65,6 +67,13 @@ public class EdgeDetectionSettings {
         return display_options;
     }
 
+    private String[] initEdgeDetectorList(){
+        String[] ed_options = new String[2];
+        ed_options[EDGE_DETECTOR_CANNY] = "Canny";
+        ed_options[EDGE_DETECTOR_NONE] = "None";
+        return ed_options;
+    }
+    
     /**
      * Creates an array of Strings describing the sources of image for edge
      * detection. This will be used for
@@ -89,6 +98,12 @@ public class EdgeDetectionSettings {
      * @see #DISPLAY_MODE_THRESHOLDED_EDGES
      */
     public final int DEFAULT_DISPLAY_MODE;
+    /**
+     * The initially selected edge detector
+     * @see #EDGE_DETECTOR_CANNY
+     * @see #EDGE_DETECTOR_NONE
+     */
+    public final int DEFAULT_EDGE_DETECTOR;
     /**
      * The initially selected {@link #FILTER_OPTIONS noise filter}
      */
@@ -132,6 +147,11 @@ public class EdgeDetectionSettings {
      * @see #initDisplayList() 
      */
     public final String[] DISPLAY_OPTIONS;
+    /**
+     * 
+     * @see #initEdgeDetectorList() 
+     */
+    public final String[] EDGE_DETECTOR_OPTIONS;
     /**
      * The items for {@link sem_secm_align.edge_detection.EdgeDetectionWindow#image_sources EdgeDetectionWindow.image_sources}.
      * @see #initImageSourceList() 
@@ -190,4 +210,13 @@ public class EdgeDetectionSettings {
      * @see sem_secm_align.edge_detection.EdgeDetectionWindow#applyDetection() 
      */
     public static final int IMAGE_SOURCE_NONE = -1;
+    
+    /**
+     * Will use the Canny edge detector
+     */
+    public static final int EDGE_DETECTOR_CANNY = 0;
+    /**
+     * Will not apply any edge detection (allows the image to be thresholded directly)
+     */
+    public static final int EDGE_DETECTOR_NONE = 1;
 }

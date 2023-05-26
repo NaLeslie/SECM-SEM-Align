@@ -1,6 +1,6 @@
 /*
  * Created: 2022-12-15
- * Updated: 2023-01-20
+ * Updated: 2023-05-26
  * Nathaniel Leslie
  */
 package sem_secm_align.edge_detection;
@@ -45,6 +45,7 @@ public class EdgeVisualizer extends JPanel{
         
         display_image = new BufferedImage(1, 1, BufferedImage.TYPE_3BYTE_BGR);;
         display_mode = ed_settings.DEFAULT_DISPLAY_MODE;
+        edge_detector_mode = ed_settings.DEFAULT_EDGE_DETECTOR;
         filtered_data = new double[1][1];
         filter = ed_settings.FILTER_OPTIONS[ed_settings.DEFAULT_FILTER];
         lower_threshold = 1.0;
@@ -77,6 +78,18 @@ public class EdgeVisualizer extends JPanel{
     public void setDisplayMode(int display_mode){
         this.display_mode = display_mode;
         updateGraphics();
+    }
+    
+    /**
+     * Sets the edge or feature detector to be used.
+     * @param edge_detector 
+     */
+    public void setEdgeDetector(int edge_detector){
+        edge_detector_mode = edge_detector;
+        updateEdges();
+        if(display_mode != EdgeDetectionSettings.DISPLAY_MODE_PRE_FILTER && display_mode != EdgeDetectionSettings.DISPLAY_MODE_POST_FILTER){
+            updateGraphics();
+        }
     }
     
     /**
@@ -165,6 +178,7 @@ public class EdgeVisualizer extends JPanel{
      * @see #ed_settings
      */
     private Image plotImage(double[][] data, double pixel_width_over_height, int width, int height){
+        int nan_behaviour = NAN_BEHAVIOUR_ZERO;
         if(width < 1 || height < 1){
             return new BufferedImage(1, 1, BufferedImage.TYPE_3BYTE_BGR);
         }
@@ -180,7 +194,12 @@ public class EdgeVisualizer extends JPanel{
         for(int x = 0; x < data.length; x++){
             for(int y = 0; y < data[0].length; y++){
                 if(Double.isNaN(data[x][y])){
-                    return plot;
+                    if(nan_behaviour == NAN_BEHAVIOUR_ZERO){
+                        data[x][y] = 0;
+                    }
+                    
+//                    System.out.println("NaN detected.");
+//                    return plot;
                 }
                 if(Math.abs(data[x][y]) > max){
                     max = Math.abs(data[x][y]);
@@ -333,6 +352,21 @@ public class EdgeVisualizer extends JPanel{
     }
     
     /**
+     * 
+     * @param edge_detector
+     * @return 
+     */
+    private int updateEdges(){
+        if(edge_detector_mode == EdgeDetectionSettings.EDGE_DETECTOR_CANNY){
+            return computeEdgesCanny();
+        }
+        else if(edge_detector_mode == EdgeDetectionSettings.EDGE_DETECTOR_NONE){
+            return computeEdgesNone();
+        }
+        return 1;
+    }
+    
+    /**
      * Applies Sobel operators to the {@link #filtered_data filtered data} to find the direction and magnitude of its gradients.
      * Local maxima along gradient directions are then written to {@link #unthresholded_edges}.
      * The strength of the edges are binned into a histogram which is sent to the {@link #parent} of this component via {@link EdgeDetectionWindow#setHistogramData(double[], int[], double, double)}.
@@ -342,7 +376,7 @@ public class EdgeVisualizer extends JPanel{
      * @see SobelX
      * @see SobelY
      */
-    private int updateEdges(){
+    private int computeEdgesCanny(){
         // apply sobel operators
         SobelX sx = new SobelX();
         SobelY sy = new SobelY();
@@ -454,6 +488,54 @@ public class EdgeVisualizer extends JPanel{
     }
     
     /**
+     * Sends {@link #filtered_data filtered data} to {@link #unthresholded_edges}.
+     * The data is binned into a histogram which is sent to the {@link #parent} of this component via {@link EdgeDetectionWindow#setHistogramData(double[], int[], double, double)}.
+     * @return 0 if there are no errors, 1 otherwise.
+     * @see EdgeDetectionWindow#setHistogramData(double[], int[], double, double) 
+     */
+    private int computeEdgesNone(){
+        unthresholded_edges = new double[filtered_data.length][filtered_data[0].length];
+        double max = filtered_data[0][0];
+        double min = filtered_data[0][0];
+        for(int x = 0; x < unthresholded_edges.length; x++){
+            for(int y = 0; y < unthresholded_edges[0].length; y++){
+                unthresholded_edges[x][y] = filtered_data[x][y];
+                if(unthresholded_edges[x][y] > max){
+                    max = unthresholded_edges[x][y];
+                }
+                if(unthresholded_edges[x][y] < min){
+                    min = unthresholded_edges[x][y];
+                }
+            }
+        }
+        double unrounded_max = max;
+        //Round the extreme values
+        max = roundedMax(max);
+        int numbins = 20;
+        double binwidth = (max) / ((double)numbins);
+        int[] histogram_counts = new int[numbins];
+        for(int x = 0; x < unthresholded_edges.length; x++){
+            for(int y = 0; y < unthresholded_edges[0].length; y++){
+                if(unthresholded_edges[x][y] > 0){
+                    if(unthresholded_edges[x][y] < max){
+                        int index = (int)((unthresholded_edges[x][y]) / binwidth);
+                        histogram_counts[index] ++;
+                    }
+                    else{
+                        histogram_counts[numbins - 1] ++;
+                    }
+                }
+            }
+        }
+        double[] histogram_mags = new double[numbins];
+        for(int i = 0; i < numbins; i++){
+            histogram_mags[i] = binwidth * ((double)i);
+        }
+        parent.setHistogramData(histogram_mags, histogram_counts, min, unrounded_max);
+        return 0;
+    }
+    
+    /**
      * Returns the thresholded edges computed by this component.
      * @return The thresholded edges.
      */
@@ -503,6 +585,13 @@ public class EdgeVisualizer extends JPanel{
      * @see #setDisplayMode(int) 
      */
     private int display_mode;
+    /**
+     * The edge detector mode for this component.
+     * Determines how edge/feature detection is performed
+     * @see #updateEdges() 
+     * 
+     */
+    private int edge_detector_mode;
     /**
      * The filtered data
      */
@@ -578,4 +667,8 @@ public class EdgeVisualizer extends JPanel{
      * @see #plotImage(double[][], double, int, int)
      */
     private static final int COLOUR_BAR_WIDTH = 15;
+    /**
+     * Will replace NaN values with zero when plotting an image in {@link #plotImage(double[][], double, int, int) }
+     */
+    private static final int NAN_BEHAVIOUR_ZERO = 0;
 }

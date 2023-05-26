@@ -1,6 +1,6 @@
 /*
  * Created: 2022-12-01
- * Updated: 2023-01-23
+ * Updated: 2023-05-26
  * Nathaniel Leslie
  */
 package sem_secm_align.edge_detection;
@@ -54,22 +54,27 @@ public class EdgeDetectionWindow extends JFrame{
         
         c.anchor = GridBagConstraints.NORTHWEST;
         c.fill = GridBagConstraints.BOTH;
-        c.ipadx=DEFAULT_PAD;
+        c.ipadx=SPACER_PAD;
         c.ipady=SPACER_PAD;
-        c.weightx = 1;
+        c.weightx = 0;
         c.weighty = 0;
         c.gridx = 0;
         c.gridy = 0;
         
+        control_panel.add(new JLabel(""), c);
+        
+        c.weightx = 1;
+        c.ipadx=DEFAULT_PAD;
+        c.gridx = 1;
         control_panel.add(new JLabel("Image:"), c);
         
-        c.gridx = 1;
+        c.gridx = 2;
         c.weightx = 0;
         c.ipadx=SPACER_PAD;
         
         control_panel.add(new JLabel(""), c);
         
-        c.gridx = 2;
+        c.gridx = 3;
         c.weightx = 1;
         c.ipadx=DEFAULT_PAD;
         
@@ -80,8 +85,16 @@ public class EdgeDetectionWindow extends JFrame{
         });
         control_panel.add(image_sources,c);
         
-        c.gridx = 0;
+        c.gridx = 4;
+        c.weightx = 0;
+        c.ipadx=SPACER_PAD;
+        
+        control_panel.add(new JLabel(""), c);
+        
+        c.gridx = 1;
         c.gridy = 1;
+        c.weightx = 1;
+        c.ipadx=DEFAULT_PAD;
         
         control_panel.add(new JLabel("Noise Filter:"), c);
         
@@ -90,7 +103,7 @@ public class EdgeDetectionWindow extends JFrame{
             filter_names[i] = ed_settings.FILTER_OPTIONS[i].getName();
         }
         
-        c.gridx = 2;
+        c.gridx = 3;
         
         filter_options = new JComboBox(filter_names);
         filter_options.setSelectedIndex(ed_settings.DEFAULT_FILTER);
@@ -99,12 +112,26 @@ public class EdgeDetectionWindow extends JFrame{
         });
         control_panel.add(filter_options, c);
         
-        c.gridx = 0;
+        c.gridx = 1;
         c.gridy = 2;
         
-        control_panel.add(new JLabel("Threshold Minimum"), c);
+        control_panel.add(new JLabel("Edge Detector:"), c);
         
-        c.gridx = 2;
+        c.gridx = 3;
+        
+        detector_options = new JComboBox(ed_settings.EDGE_DETECTOR_OPTIONS);
+        detector_options.setSelectedIndex(ed_settings.DEFAULT_EDGE_DETECTOR);
+        detector_options.addActionListener((ActionEvent e) -> {
+            detectorChange();
+        });
+        control_panel.add(detector_options,c);
+        
+        c.gridx = 1;
+        c.gridy = 3;
+        
+        control_panel.add(new JLabel("Threshold Minimum:"), c);
+        
+        c.gridx = 3;
         
         threshold_min = new JTextField("Min");
         threshold_min.addKeyListener(new KeyAdapter() {
@@ -121,12 +148,12 @@ public class EdgeDetectionWindow extends JFrame{
         });
         control_panel.add(threshold_min, c);
         
-        c.gridx = 0;
-        c.gridy = 3;
+        c.gridx = 1;
+        c.gridy = 4;
         
-        control_panel.add(new JLabel("Threshold Maximum"), c);
+        control_panel.add(new JLabel("Threshold Maximum:"), c);
         
-        c.gridx = 2;
+        c.gridx = 3;
         
         threshold_max = new JTextField("Max");
         threshold_max.addKeyListener(new KeyAdapter() {
@@ -143,12 +170,12 @@ public class EdgeDetectionWindow extends JFrame{
         });
         control_panel.add(threshold_max, c);
         
-        c.gridx = 0;
-        c.gridy = 4;
+        c.gridx = 1;
+        c.gridy = 5;
         
-        control_panel.add(new JLabel("View"), c);
+        control_panel.add(new JLabel("View:"), c);
         
-        c.gridx = 2;
+        c.gridx = 3;
         display_options = new JComboBox(ed_settings.DISPLAY_OPTIONS);
         display_options.setSelectedIndex(ed_settings.DEFAULT_DISPLAY_MODE);
         display_options.addActionListener((ActionEvent e) -> {
@@ -156,8 +183,8 @@ public class EdgeDetectionWindow extends JFrame{
         });
         control_panel.add(display_options, c);
         
-        c.gridx = 0;
-        c.gridy = 5;
+        c.gridx = 1;
+        c.gridy = 6;
         
         apply_option = new JButton("Apply");
         apply_option.addActionListener((ActionEvent e) -> {
@@ -165,7 +192,7 @@ public class EdgeDetectionWindow extends JFrame{
         });
         control_panel.add(apply_option, c);
         
-        c.gridx = 2;
+        c.gridx = 3;
         
         close_option = new JButton("Close");
         close_option.addActionListener((ActionEvent e) -> {
@@ -173,7 +200,7 @@ public class EdgeDetectionWindow extends JFrame{
         });
         control_panel.add(close_option, c);
         
-        c.gridy = 6;
+        c.gridy = 7;
         c.weighty = 1;
         
         control_panel.add(new JLabel(""), c);
@@ -225,6 +252,7 @@ public class EdgeDetectionWindow extends JFrame{
         //initialize inputs
         threshold_max_accepted = 0;
         threshold_min_accepted = 0;
+        last_detector = ed_settings.DEFAULT_EDGE_DETECTOR;
         last_display = ed_settings.DEFAULT_DISPLAY_MODE;
         last_filter = ed_settings.DEFAULT_FILTER;
         last_image_source = ed_settings.DEFAULT_IMAGE_SOURCE;
@@ -261,6 +289,7 @@ public class EdgeDetectionWindow extends JFrame{
         edge_histogram.setHistogramData(magnitudes, counts);
         max = maximum;
         min = minimum;
+        forceThresholdUpdate();
     }
     
     /**
@@ -306,6 +335,15 @@ public class EdgeDetectionWindow extends JFrame{
         }
     }
     
+    private void detectorChange(){
+        int selected_detector = detector_options.getSelectedIndex();
+        if(selected_detector != last_detector){
+            last_detector = selected_detector;
+            edge_display.setEdgeDetector(last_detector);
+            forceThresholdUpdate();
+        }
+    }
+    
     /**
      * Triggered when the user interacts with {@link #filter_options}.
      * If the selected filter has changed, the new filter will be sent to the {@link #edge_display}.
@@ -316,6 +354,8 @@ public class EdgeDetectionWindow extends JFrame{
         if(selected_filter != last_filter){
             last_filter = selected_filter;
             edge_display.setFilter(ed_settings.FILTER_OPTIONS[selected_filter]);
+            threshold_max_accepted = max;
+            threshold_min_accepted = min;
             forceThresholdUpdate();
         }
     }
@@ -338,6 +378,9 @@ public class EdgeDetectionWindow extends JFrame{
                 case EdgeDetectionSettings.IMAGE_SOURCE_SECM : 
                     if(parent.getSECMDisplayable()){
                         edge_display.setUnfilteredData(parent.getSECMCurrents(), w, h);
+                        threshold_max_accepted = max;
+                        threshold_min_accepted = min;
+                        edge_histogram.setThresholdDomain(min, max);
                     }
                     else{
                         JOptionPane.showMessageDialog(this, "No SECM image is currently loaded.", "No SECM image", JOptionPane.ERROR_MESSAGE);
@@ -347,6 +390,9 @@ public class EdgeDetectionWindow extends JFrame{
                     if(parent.getSEMDisplayable()){
                         try {
                             edge_display.setUnfilteredData(parent.getSEMSignals(), w, h);
+                            threshold_max_accepted = max;
+                            threshold_min_accepted = min;
+                            edge_histogram.setThresholdDomain(min, max);
                         } catch (ImproperFileFormattingException ex) {
                             ex.printStackTrace();
                         }
@@ -374,6 +420,13 @@ public class EdgeDetectionWindow extends JFrame{
             if(text.equalsIgnoreCase("max")){
                 threshold_max_accepted = max;
             }
+            else if(text.endsWith("%")){
+                double newmax = thresholdPercentInterpreter(text);
+                if(newmax < 0.0){
+                    throw new NumberFormatException("min cannot be negative.");
+                }
+                threshold_max_accepted = newmax;
+            }
             else{
                 double newmax = Double.parseDouble(text);
                 if(newmax < 0.0){
@@ -400,6 +453,13 @@ public class EdgeDetectionWindow extends JFrame{
             String text = threshold_max.getText();
             if(text.equalsIgnoreCase("max")){
                 threshold_max_accepted = max;
+            }
+            else if(text.endsWith("%")){
+                double newmax = thresholdPercentInterpreter(text);
+                if(newmax < 0.0){
+                    throw new NumberFormatException("min cannot be negative.");
+                }
+                threshold_max_accepted = newmax;
             }
             else{
                 double newmax = Double.parseDouble(text);
@@ -433,6 +493,13 @@ public class EdgeDetectionWindow extends JFrame{
             if(text.equalsIgnoreCase("min")){
                 threshold_min_accepted = min;
             }
+            else if(text.endsWith("%")){
+                double newmin = thresholdPercentInterpreter(text);
+                if(newmin < 0.0){
+                    throw new NumberFormatException("min cannot be negative.");
+                }
+                threshold_min_accepted = newmin;
+            }
             else{
                 double newmin = Double.parseDouble(text);
                 if(newmin < 0.0){
@@ -460,6 +527,13 @@ public class EdgeDetectionWindow extends JFrame{
             if(text.equalsIgnoreCase("min")){
                 threshold_min_accepted = min;
             }
+            else if(text.endsWith("%")){
+                double newmin = thresholdPercentInterpreter(text);
+                if(newmin < 0.0){
+                    throw new NumberFormatException("min cannot be negative.");
+                }
+                threshold_min_accepted = newmin;
+            }
             else{
                 double newmin = Double.parseDouble(text);
                 if(newmin < 0.0){
@@ -479,6 +553,17 @@ public class EdgeDetectionWindow extends JFrame{
         catch(Exception ex){
             
         }
+    }
+    /**
+     * Converts a string of the form [0-9 +]% to a double representing the given percentage of the way between the true min and the max
+     * @param input the input string (terminated by a '%')
+     * @return The value <code>(max - min) * 0.01 * percentage + min</code>
+     * @throws NumberFormatException 
+     */
+    private double thresholdPercentInterpreter(String input)throws NumberFormatException{
+        String trimmed = input.substring(0, input.lastIndexOf("%"));
+        double percentage = Double.parseDouble(trimmed);
+        return (max - min) * 0.01 * percentage + min;
     }
     
     /**
@@ -514,6 +599,10 @@ public class EdgeDetectionWindow extends JFrame{
      * The most recently accepted threshold minimum.
      */
     private double threshold_min_accepted;
+    /**
+     * the most recent detector mode.
+     */
+    private int last_detector;
     /**
      * The most recent display mode.
      */
@@ -559,6 +648,10 @@ public class EdgeDetectionWindow extends JFrame{
      * The component that gives the user options for filtering noise in the image.
      */
     private JComboBox filter_options;
+    /**
+     * The component that gives the user options for edge detection methods.
+     */
+    private JComboBox detector_options;
     /**
      * The button that triggers edge data to be sent to the {@link #parent}.
      */

@@ -1,6 +1,6 @@
 /*
  * Created: 2022-01-14
- * Updated: 2023-04-06
+ * Updated: 2023-05-29
  * Nathaniel Leslie
  */
 package sem_secm_align;
@@ -1383,10 +1383,10 @@ public class Visualizer extends JPanel{
         //add up the image pixels in each bin.
         for(int x = 0; x < image_width; x++){
             double xcoord = (double)x / (double)image_width * secm_width;
-            int reac_grid_x = (int)Math.floor((xcoord*secm_scale_factor) / reac_xresolution);
+            int reac_grid_x = (int)Math.round((xcoord*secm_scale_factor) / reac_xresolution);
             for(int y = 0; y < image_height; y++){
                 double ycoord = (double)y / (double)image_height * secm_height;
-                int reac_grid_y = (int)Math.floor((ycoord*secm_scale_factor) / reac_yresolution);
+                int reac_grid_y = (int)Math.round((ycoord*secm_scale_factor) / reac_yresolution);
                 try{
                 sums[reac_grid_x][reac_grid_y] += grayscale[x + x0][y + y0];
                 samples[reac_grid_x][reac_grid_y] ++;

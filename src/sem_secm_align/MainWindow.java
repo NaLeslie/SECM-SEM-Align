@@ -645,9 +645,16 @@ public class MainWindow extends JFrame{
             samGenerate();
         });
         sam_button_mount.add(sam_generate, c);
+        c.gridy=1;
+        sam_imgexport = new JButton("Export aligned SEM");
+        sam_imgexport.addActionListener((ActionEvent e) -> {
+            samImgExport();
+        });
+        sam_button_mount.add(sam_imgexport, c);
         c.gridx = 0;
         c.gridy = 1;
         sampling_tab.add(sam_button_mount, c);
+        
         c.gridx=1;
         c.gridy=2;
         c.weightx=1;
@@ -1167,6 +1174,37 @@ public class MainWindow extends JFrame{
                     filetype = Visualizer.FILETYPE_TSV;
                 }
                 view_screen.saveData(flpth, secm_current_scale_factor, filetype, SECMImage.INTERPOLATION_BILINEAR);
+            }
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Triggered when {@link #sam_imgexport} is pressed
+     * Prompts the user for a file name, then sends the file to the {@link #view_screen} so that information can be written to it.
+     */
+    private void samImgExport(){
+        try{
+            FileFilter ffcsv = new FileNameExtensionFilter( "Comma Separated Values", "csv");
+            FileFilter fftsv = new FileNameExtensionFilter( "Tab Separated Values", "tsv");
+            JFileChooser filedialog = new JFileChooser();
+            filedialog.addChoosableFileFilter(ffcsv);
+            filedialog.addChoosableFileFilter(fftsv);
+            filedialog.setFileFilter(ffcsv);
+            int response = filedialog.showSaveDialog(this);
+            if(response == JFileChooser.APPROVE_OPTION){
+                String flpth = "" + filedialog.getSelectedFile().getPath();
+                FileFilter selected = filedialog.getFileFilter();
+                int filetype = Visualizer.FILETYPE_NOT_SPECIFIED;
+                if(selected.equals(ffcsv)){
+                    filetype = Visualizer.FILETYPE_CSV;
+                }
+                else if(selected.equals(fftsv)){
+                    filetype = Visualizer.FILETYPE_TSV;
+                }
+                view_screen.saveSEM(flpth, filetype);
             }
         }
         catch(Exception e){
@@ -1738,6 +1776,10 @@ public class MainWindow extends JFrame{
      * A button for generating an instruction file for a simulation of an SECM image using the user-determined reactivity grid.
      */
     JButton sam_generate;
+    /**
+     * A button for exporting the scaled and rotated SEM image as an x,y,signal text file
+     */
+    JButton sam_imgexport;
     
     //Global
     /**

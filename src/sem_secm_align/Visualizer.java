@@ -1528,6 +1528,68 @@ public class Visualizer extends JPanel{
         }
     }
     
+    /**
+     * Exports the scaled and rotated SEM image to the given filepath in the requested file format for plotting.
+     * @param filepath the file to be saved to
+     * @param fileformat the format for the file
+     */
+    public void saveSEM(String filepath, int fileformat){
+        
+        String delimiter = ",";
+        if(fileformat == Visualizer.FILETYPE_TSV){
+            delimiter = "\t";
+        }
+        
+        try{
+            File f = new File(filepath);
+            f.createNewFile();
+            try (PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(f)))) {
+                pw.print("#x" + delimiter + "y" + delimiter + "signal");
+                BufferedImage sem = drawSEM(1.0f);
+                int width = this.getWidth();
+                int height = this.getHeight();
+                double[][] grayscale = bufferedImageToGrayscale(sem);
+                double secm_width = secm_image.getXMax() - secm_image.getXMin();
+                double secm_height = secm_image.getYMax() - secm_image.getYMin();
+                int image_width, image_height;
+                working_scale = (double)width/secm_width/secm_scale_factor; //pixels per metre
+                if(secm_width/width < secm_height/height){
+                    image_width = (int)(secm_width/secm_height*(double)height);
+                    image_height = height;
+                    working_scale = (double)height/secm_height/secm_scale_factor;
+                }
+                else{
+                    image_width = width;
+                    image_height = (int)(secm_height/secm_width*(double)width);
+                }       int x0 = (width - image_width)/2;
+                int y0 = (height - image_height)/2;
+                for(int x = 0; x < image_width; x++){
+                    double xcoord = (double)x / (double)image_width * secm_width;
+                    for(int y = 0; y < image_height; y++){
+                        double ycoord = (double)y / (double)image_height * secm_height;
+                        try{
+                            double data = grayscale[x + x0][y + y0];
+                            pw.print("\n" + xcoord + delimiter + ycoord + delimiter + data);
+                        }
+                        catch(ArrayIndexOutOfBoundsException e){
+                            int gx = x + x0;
+                            int gy = y + y0;
+                            System.out.println("x: " + x + " max: " + image_width);
+                            System.out.println("y: " + y + " max: " + image_height);
+                            System.out.println("grayx: " + gx + " max: " + grayscale.length);
+                            System.out.println("grayy: " + gy + " max: " + grayscale[0].length);
+                        }
+                    }
+                }   
+            }
+        }
+        catch(IOException e){
+            
+        }
+        
+
+    }
+    
     //Fields
     /**
      * The image that is rendered in the visualizer in {@link #paint(java.awt.Graphics)}.

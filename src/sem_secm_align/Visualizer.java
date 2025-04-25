@@ -389,6 +389,13 @@ public class Visualizer extends JPanel{
         double wstop = Math.ceil((crop_x2 - secm_image.getXMin()*secm_scale_factor) / reac_xresolution);
         double hstop = Math.ceil((crop_y2 - secm_image.getYMin()*secm_scale_factor) / reac_yresolution);
         
+        double wstoplim = switches.length;
+        double hstoplim = switches[0].length;
+        wstart = Math.max(wstart, 0.0);
+        hstart = Math.max(hstart, 0.0);
+        wstop = Math.min(wstop, wstoplim);
+        hstop = Math.min(hstop, hstoplim);
+        
         reac_graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP,reac_selection_transparency));
         reac_graphics.setColor(ColourSettings.ACTIVE_COLOUR);
         for(int w_index = (int)wstart; w_index < (int)wstop; w_index ++){

@@ -442,8 +442,12 @@ public class SECMImage {
                 current_maximum = cur;
                 boolean xexists = false;
                 for(int i = 0; i< xs.size(); i++){
-                    double relative = Math.abs((x - xs.get(i))/xs.get(i));
-                    if(xs.get(i) == 0){
+                    double denom = 0.5*(Math.abs(x) + Math.abs(xs.get(i)));
+                    double relative;
+                    if(denom != 0.0){
+                        relative = Math.abs((x - xs.get(i))/denom);
+                    }
+                    else{
                         relative = Math.abs(x - xs.get(i));
                     }
 
@@ -457,8 +461,12 @@ public class SECMImage {
                 }
                 boolean yexists = false;
                 for(int i = 0; i< ys.size(); i++){
-                    double relative = Math.abs((y - ys.get(i))/ys.get(i));
-                    if(ys.get(i) == 0){
+                    double denom = 0.5*(Math.abs(y) + Math.abs(ys.get(i)));
+                    double relative;
+                    if(denom != 0.0){
+                        relative = Math.abs((y - ys.get(i))/denom);
+                    }
+                    else{
                         relative = Math.abs(y - ys.get(i));
                     }
                     if(relative < Constants.RELATIVE_ERR_CUTOFF){//see if the y already exists

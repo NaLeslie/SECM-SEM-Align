@@ -41,18 +41,18 @@ public class SignalImage {
         }
     }
     
-    public static SignalImage bilinearInterpolateToNewDomain(ImageDomain new_domain, AffineTransform transform, SignalImage to_interpolate){
-        //apply `transform` to `to_interpolate`
-        //perform bilinear interpolation between `to_interpolate` points
-        //integrate under this interpolation within the areas of new_domain to assign values.
-        
-        for(int ndx = 0; ndx < new_domain.getXDimension()-1; ndx ++){
-            for(int ndy = 0; ndy < new_domain.getYDimension()-1; ndy ++){
-                //check any overlaps between transformed image and rectangle [ndx <-> ndx+1],[ndy <-> ndy+1]
-                    //special case if transformed square is entirely within the rectangle since the signal is now the full integration of the transformed quadrilateral
-            }
-        }
-    }
+//    public static SignalImage bilinearInterpolateToNewDomain(ImageDomain new_domain, AffineTransform transform, SignalImage to_interpolate){
+//        //apply `transform` to `to_interpolate`
+//        //perform bilinear interpolation between `to_interpolate` points
+//        //integrate under this interpolation within the areas of new_domain to assign values.
+//        
+//        for(int ndx = 0; ndx < new_domain.getXDimension()-1; ndx ++){
+//            for(int ndy = 0; ndy < new_domain.getYDimension()-1; ndy ++){
+//                //check any overlaps between transformed image and rectangle [ndx <-> ndx+1],[ndy <-> ndy+1]
+//                    //special case if transformed square is entirely within the rectangle since the signal is now the full integration of the transformed quadrilateral
+//            }
+//        }
+//    }
     
     protected double[][] data;    
     protected ImageDomain domain;

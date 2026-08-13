@@ -46,9 +46,35 @@ public class ConvexPolygon {
                 new_vertex_list.add(newpoint);
             }
         }
+        int n = poly1.vertices.length;
+        int m = poly2.vertices.length;
+        LineSegment[] edges1 = new LineSegment[n];
+        edges1[0] = new LineSegment(poly1.vertices[n-1].getX(), poly1.vertices[n-1].getY(), poly1.vertices[0].getX(), poly1.vertices[0].getY());
+        for(int i = 1; i < n; i++){
+            edges1[i] = new LineSegment(poly1.vertices[i-1].getX(), poly1.vertices[i-1].getY(), poly1.vertices[i].getX(), poly1.vertices[i].getY());
+        }
+        LineSegment edge2 = new LineSegment(poly2.vertices[m-1].getX(), poly2.vertices[m-1].getY(), poly2.vertices[0].getX(), poly2.vertices[0].getY());
+        for(int j = 0; j < n; j++){
+            Point2D.Double intercept = LineSegment.findIntersection(edge2, edges1[j]);
+            if(!Double.isNaN(intercept.getX())){
+                new_vertex_list.add(intercept);
+            }
+        }
+        for(int i = 0; i < m; i++){
+            edge2 = new LineSegment(poly2.vertices[i-1].getX(), poly2.vertices[i-1].getY(), poly2.vertices[i].getX(), poly2.vertices[i].getY());
+            for(int j = 0; j < n; j++){
+                Point2D.Double intercept = LineSegment.findIntersection(edge2, edges1[j]);
+                if(!Double.isNaN(intercept.getX())){
+                    new_vertex_list.add(intercept);
+                }
+            }
+        }
+        
+        //sort new_vertex_list by angle between element 0 element i and VertexMean
+        
     }
     
-    public Point2D.Double getMeanVertex(){
+    public Point2D.Double getVertexMean(){
         double xsum = 0.0;
         double ysum = 0.0;
         for(int i = 0; i < vertices.length; i++){
@@ -73,7 +99,7 @@ public class ConvexPolygon {
                 }
             }
         }
-        Point2D.Double mean_vertex = this.getMeanVertex();
+        Point2D.Double mean_vertex = this.getVertexMean();
         LineSegment p2mv = new LineSegment(mean_vertex.getX(), mean_vertex.getY(), point.getX(), point.getY());
         LineSegment edge = new LineSegment(vertices[n-1].getX(), vertices[n-1].getY(), vertices[0].getX(), vertices[0].getY());
         Point2D.Double intercept = LineSegment.findIntersection(p2mv, edge);

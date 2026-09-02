@@ -24,7 +24,7 @@
 package sem_secm_align.utility;
 
 import java.awt.geom.Point2D;
-import java.util.LinkedList;
+import java.util.ArrayList;
 
 /**
  *
@@ -32,8 +32,22 @@ import java.util.LinkedList;
  */
 public class ConvexPolygon {
     
+    public ConvexPolygon(Point2D.Double[] vertices){
+        this.vertices = new Point2D.Double[vertices.length];
+        for(int i = 0; i < vertices.length; i++){
+            this.vertices[i] = new Point2D.Double(vertices[i].getX(), vertices[i].getY());
+        }
+    }
+    
+    private static double computeAngle(Point2D.Double vertex, Point2D.Double arm){
+        double vec_dx = arm.getX() - vertex.getX();
+        double vec_dy = arm.getY() - vertex.getY();
+        double angle = Math.atan2(vec_dy, vec_dx);
+        return angle;
+    }
+    
     public static ConvexPolygon getIntersection(ConvexPolygon poly1, ConvexPolygon poly2){
-        LinkedList<Point2D.Double> new_vertex_list = new LinkedList<>();
+        ArrayList<Point2D.Double> new_vertex_list = new ArrayList<>();
         for(int i = 0; i < poly1.vertices.length; i++){
             if(poly2.inPolygon(poly1.vertices[i], true)){
                 Point2D.Double newpoint = new Point2D.Double(poly1.vertices[i].getX(), poly1.vertices[i].getY());
@@ -70,11 +84,38 @@ public class ConvexPolygon {
             }
         }
         
-        //sort new_vertex_list by angle between element 0 element i and VertexMean
+        //compute angles
+        Point2D.Double[] nvl = (Point2D.Double[])new_vertex_list.toArray();
+        Point2D.Double vert_mean = getVertexMean(nvl);
         
+        double[] angles = new double[new_vertex_list.size()];
+        for(int i = 0; i < new_vertex_list.size(); i++){
+            angles[i] = computeAngle(vert_mean, new_vertex_list.get(i));
+        }
+        //sort vertices by angles to put them in the correct order
+        //inefficient sort used here since N should be small (<=8 for the quadrilateral intersections used here).
+        for(int i = 0; i < angles.length; i++){
+            int lowest = i;
+            double lowest_angle = angles[i];
+            for(int j = i+1; j < angles.length; j++){
+                if(angles[j] < lowest_angle){
+                    lowest_angle = angles[j];
+                    lowest = j;
+                }
+            }
+            if(lowest != i){
+                double anglebuffer = angles[i];
+                Point2D.Double vertexbuffer = nvl[i];
+                angles[i] = angles[lowest];
+                nvl[i] = nvl[lowest];
+                angles[lowest] = anglebuffer;
+                nvl[lowest] = vertexbuffer;
+            }
+        }
+        return new ConvexPolygon(nvl);
     }
     
-    public Point2D.Double getVertexMean(){
+    private static Point2D.Double getVertexMean(Point2D.Double[] vertices){
         double xsum = 0.0;
         double ysum = 0.0;
         for(int i = 0; i < vertices.length; i++){
@@ -83,6 +124,10 @@ public class ConvexPolygon {
         }
         double size = vertices.length;
         return new Point2D.Double(xsum/size, ysum/size);
+    }
+    
+    public Point2D.Double getVertexMean(){
+        return getVertexMean(this.vertices);
     }
     
     public boolean inPolygon(Point2D.Double point, boolean include_edges){
